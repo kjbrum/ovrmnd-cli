@@ -4,9 +4,11 @@ This document outlines the plan for building "Ovrmnd CLI," a universal, lightwei
 
 ## IMPORTANT
 
+- **Before starting any work**, check `docs/phases/PROGRESS.md` to understand the current status and priorities.
 - **After you change the file structure, update documents, or make any changes**, this `GEMINI.md` file should be updated to stay up-to-date.
+- **After completing any work**, update `docs/phases/PROGRESS.md` to reflect the changes and progress made.
 - **When changes are made to files**, ensure any important documentation or related files are updated accordingly, including `README.md`.
-- **After you've completed a task or request**, reflect on feedback the user provided and what worked or didn't work. Update the `LEARNINGS.md` file with any important learnings or findings you made so you can learn and get better over time.
+- **After you've completed a task or request**, reflect on feedback the user provided and what worked or didn't work. Update the `LEARNINGS.md` file with any important learnings or findings you made so you can learn and get better over time. This shouldn't be used to track product decisions or general updates.
 
 ## Core Concepts
 
