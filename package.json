@@ -47,11 +47,13 @@
   },
   "ava": {
     "extensions": {
-      "ts": "module",
-      "tsx": "module"
+      "ts": "module"
     },
     "nodeArguments": [
       "--loader=ts-node/esm"
+    ],
+    "files": [
+      "test/**/*.ts"
     ]
   }
 }

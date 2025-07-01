@@ -7,7 +7,7 @@ singleQuote: true
 endOfLine: 'lf'
 bracketSpacing: true
 arrowParens: 'avoid'
-printWidth: 60
+printWidth: 70
 htmlWhitespaceSensitivity: 'css'
 proseWrap: 'preserve'
 jsxBracketSameLine: false
