@@ -44,7 +44,7 @@ Implement the `list` command to help users discover available services, endpoint
 
 -   **Dual-Mode Output (Phase 2, T-05):**
     -   All output from the `list` command (lists of services, endpoints, aliases) should be passed to the dual-mode output function.
-    -   This ensures that the output is formatted correctly for both human-readable (Ink/React) and machine-readable (JSON) modes based on the `--json` or `--quiet` flags.
+    -   This ensures that the output is formatted correctly for both human-readable (console/basic formatting) and machine-readable (JSON) modes based on the `--json` or `--quiet` flags.
 -   **Standardized Error Output (Phase 2, T-06):**
     -   Any errors encountered (e.g., service not found, invalid arguments) should be caught and passed to the standardized error output function.
     -   This ensures consistent error reporting across the CLI.

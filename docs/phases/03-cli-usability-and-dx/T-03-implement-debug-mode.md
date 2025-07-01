@@ -74,7 +74,7 @@ async (argv) => {
     try {
         // ... (API call logic)
         logDebug('Request config:', requestConfig);
-        const response = await axios(requestConfig);
+        const response = await fetch(requestUrl, requestOptions);
         logDebug('Response received:', response.data);
         // ...
     } catch (error) {

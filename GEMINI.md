@@ -11,7 +11,7 @@ This document outlines the plan for building "Ovrmnd CLI," a universal, lightwei
 ## Core Concepts
 
 - **YAML-based Configuration:** Developers will define API interactions in simple, declarative YAML files. These files will specify the service's `baseUrl`, `authentication` method, and a list of `endpoints`.
-- **Service Discovery:** The CLI will automatically discover these YAML files from both a global (`~/.config/ovrmnd/`) and a local project (`./ovrmnd/`) directory.
+- **Service Discovery:** The CLI will automatically discover these YAML files from both a global (`~/.ovrmnd/`) and a local project (`./.ovrmnd/`) directory.
 - **Machine-Readable Output:** A key design principle is providing structured JSON output (when using `--json` or `--quiet` flags) for LLMs to reliably parse API responses and errors.
 - **Secure Credential Management:** API keys and tokens will be handled securely by sourcing them from environment variables (including support for `.env` files), never from the YAML configurations themselves.
 
@@ -30,4 +30,12 @@ As an AI agent, you will be able to use the Ovrmnd CLI to perform various action
 
 - **Platform:** NodeJS (LTS)
 - **Package Manager:** npm
-- **Key Libraries:** `ink` (for human-friendly UI), `yargs` (for CLI commands), `js-yaml` (for config parsing), `axios` (for HTTP requests), `dotenv` (for environment variables), and `flat-cache` (for caching).
+- **Key Libraries:** `yargs` (for CLI commands), `js-yaml` (for config parsing), `dotenv` (for environment variables), `flat-cache` (for caching), and native `fetch` for HTTP requests. (Note: `ink` for human-friendly UI is deferred for later consideration.)
+
+## Documentation
+
+### yargs
+
+- API: https://github.com/yargs/yargs/blob/main/docs/api.md
+- TypeScript: https://github.com/yargs/yargs/blob/main/docs/typescript.md
+- Advanced usage: https://github.com/yargs/yargs/blob/main/docs/advanced.md

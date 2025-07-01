@@ -34,11 +34,11 @@ Implement a response caching mechanism for `GET` requests based on a configurabl
 ### 3. Integration with `call` Command (Phase 2, T-04)
 
 -   **Pre-Request Check:**
-    -   In the `call` command's `yargs` handler, before making the `axios` request:
+    -   In the `call` command's `yargs` handler, before making the `fetch` request:
         -   Check if the `endpointDefinition.method` is `GET`.
         -   Check if `endpointDefinition.cacheTTL` is defined and is a positive number.
         -   If both conditions are met, generate the cache key for the current request.
-        -   Call the `getOrSetCache` function, passing the generated key, the `cacheTTL`, and an anonymous function that performs the actual `axios` request.
+        -   Call the `getOrSetCache` function, passing the generated key, the `cacheTTL`, and an anonymous function that performs the actual `fetch` request.
 -   **Response Handling:**
     -   The `getOrSetCache` function will return either the cached data or the fresh API response. This data will then be passed to the response transformation (T-03) and dual-mode output (T-05) functions.
 
@@ -56,7 +56,7 @@ const flatCache = require('flat-cache');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto'); // For generating cache keys
-// Assume axios, logDebug, printOutput, handleError are imported/available
+// Assume fetch, logDebug, printOutput, handleError are imported/available
 
 // Define a consistent cache directory
 const cacheDir = path.join(os.homedir(), '.cache', 'ovrmnd');
@@ -125,12 +125,12 @@ async function getOrSetCache(cacheId, key, ttl, fetchFunction) {
 //                 requestConfig.data
 //             );
 //             responseData = await getOrSetCache(cacheId, cacheKey, endpointDefinition.cacheTTL, async () => {
-//                 const response = await axios(requestConfig);
-//                 return response.data;
+//                 const response = await fetch(requestUrl, requestOptions);
+//                 return response.json();
 //             });
 //         } else {
-//             const response = await axios(requestConfig);
-//             responseData = response.data;
+//             const response = await fetch(requestUrl, requestOptions);
+//             responseData = await response.json();
 //         }
 
 //         // Apply transformation if defined (from T-03, Phase 4)

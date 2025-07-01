@@ -108,8 +108,8 @@ yargs.command(
 
             applyAuthentication(requestConfig, serviceConfig); // From T-03, Phase 2
 
-            const response = await axios(requestConfig);
-            printOutput(response.data, isJsonOutput); // From T-05, Phase 2
+            const response = await fetch(fullUrl, requestOptions);
+            printOutput(await response.json(), isJsonOutput); // From T-05, Phase 2
 
         } catch (error) {
             handleError(error, isJsonOutput); // From T-06, Phase 2

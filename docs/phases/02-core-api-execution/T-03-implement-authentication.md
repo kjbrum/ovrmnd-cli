@@ -18,7 +18,7 @@ Implement the initial version of authentication handling for the Ovrmnd CLI, sup
 ### 2. Credential Application to API Requests
 
 -   **Authentication Function:**
-    -   Create a function, `applyAuthentication(requestConfig, serviceConfig)`, that takes the `axios` request configuration object and the service's authentication configuration as input.
+    -   Create a function, `applyAuthentication(requestConfig, serviceConfig)`, that takes the `Request` object (or a configuration object for `fetch`) and the service's authentication configuration as input.
     -   This function will dynamically add the appropriate authentication headers or query parameters based on the `authentication` details provided in the service's YAML configuration.
 -   **Bearer Token Handling:**
     -   If `serviceConfig.authentication.type` is `bearer`:

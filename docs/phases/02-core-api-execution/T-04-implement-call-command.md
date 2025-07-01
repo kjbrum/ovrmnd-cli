@@ -38,10 +38,10 @@ Implement the core `call` command, which will execute API requests based on the 
 -   **Apply Credentials:**
     -   Call the `applyAuthentication()` function (from T-03) to add the necessary authentication headers or query parameters to the request configuration.
 
-### 5. HTTP Request Execution with `axios`
+### 5. HTTP Request Execution with `fetch`
 
 -   **Request Construction:**
-    -   Construct the `axios` request configuration object:
+    -   Construct the `fetch` request configuration object:
         -   `baseURL`: from `serviceConfig.baseUrl`.
         -   `method`: from `endpointDefinition.method`.
         -   `url`: the `finalPath` returned by `mapParameters`.
@@ -61,7 +61,7 @@ Implement the core `call` command, which will execute API requests based on the 
 ## Pseudocode
 
 ```javascript
-const axios = require('axios');
+
 const yargs = require('yargs');
 // Assume loadConfigurations, validateSchema, mapParameters, applyAuthentication are imported/available
 
@@ -109,7 +109,7 @@ yargs.command(
 
             applyAuthentication(requestConfig, serviceConfig); // From T-03
 
-            const response = await axios(requestConfig);
+            const response = await fetch(fullUrl, requestOptions);
             // Pass response to dual-mode output (T-05)
             console.log(JSON.stringify(response.data, null, 2)); // Placeholder for T-05
 

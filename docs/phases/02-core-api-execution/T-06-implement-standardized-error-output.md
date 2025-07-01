@@ -29,8 +29,8 @@ Implement a standardized error output mechanism that ensures all errors (network
     -   `error.code`: A concise, machine-readable string representing the error type (e.g., `NETWORK_ERROR`, `AUTH_ERROR`, `API_ERROR`, `VALIDATION_ERROR`, `UNKNOWN_ERROR`).
     -   `error.message`: A human-readable summary of the error.
     -   `error.details`: An object containing additional context relevant to the error. This might include:
-        -   HTTP status code (`error.response.status` for `axios` errors).
-        -   API-specific error response data (`error.response.data` for `axios` errors).
+        -   HTTP status code (`response.status` for `fetch` errors).
+-   API-specific error response data (`response.json()` for `fetch` errors).
         -   Validation error specifics.
         -   Stack trace (potentially only in debug mode).
 
@@ -54,7 +54,7 @@ Implement a standardized error output mechanism that ensures all errors (network
     -   **Machine-Readable (JSON):**
         -   If `isJsonOutput` is `true`, construct the standardized JSON error object and print it to `stderr` (to keep `stdout` clean for successful JSON output).
     -   **Human-Friendly:**
-        -   If `isJsonOutput` is `false`, display a user-friendly error message to `stderr`. This could involve using `ink` to render a red-colored error message, potentially with a brief explanation and a suggestion for troubleshooting.
+        -   If `isJsonOutput` is `false`, display a user-friendly error message to `stderr`. This could involve using `console.error` to render a red-colored error message, potentially with a brief explanation and a suggestion for troubleshooting.
 
 ## Pseudocode
 
@@ -65,29 +65,13 @@ function handleError(error, isJsonOutput) {
     let errorMessage = 'An unexpected error occurred.';
     let errorDetails = {};
 
-    if (error.isAxiosError) {
-        if (error.response) {
-            // API error (e.g., 4xx, 5xx response)
-            errorCode = 'API_ERROR';
-            errorMessage = `API Error: ${error.response.status} ${error.response.statusText}`;
-            errorDetails = {
-                status: error.response.status,
-                data: error.response.data,
-            };
-        } else if (error.request) {
-            // Network error (no response received)
-            errorCode = 'NETWORK_ERROR';
-            errorMessage = 'Network Error: Could not connect to the API.';
-            errorDetails = {
-                message: error.message,
-                code: error.code, // e.g., ECONNABORTED, ENOTFOUND
-            };
-        } else {
-            // Axios setup error
-            errorCode = 'AXIOS_SETUP_ERROR';
-            errorMessage = 'Axios configuration error.';
-            errorDetails = { message: error.message };
-        }
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        // Network error (e.g., no internet, DNS error)
+        errorCode = 'NETWORK_ERROR';
+        errorMessage = 'Network Error: Could not connect to the API.';
+        errorDetails = {
+            message: error.message,
+        };
     } else if (error.message.includes('Authentication failed')) { // Simple check for now, refine later
         errorCode = 'AUTH_ERROR';
         errorMessage = error.message;

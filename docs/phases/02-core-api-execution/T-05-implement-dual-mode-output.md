@@ -26,11 +26,9 @@ Implement a dual-mode output system for the CLI, providing both human-friendly a
         -   The `data` object will be converted to a JSON string using `JSON.stringify(data, null, 2)` for pretty-printing during development/debugging, or `JSON.stringify(data)` for a more compact output suitable for LLMs.
         -   This JSON string will be printed directly to `stdout`.
         -   No other UI elements (spinners, colors, etc.) should be displayed.
--   **Human-Friendly Output (Ink/React):**
+-   **Human-Friendly Output (Console/Basic Formatting):**
     -   If `isJsonOutput` is `false`:
-        -   The `data` will be passed to an `ink` React component for rendering.
-        -   This component can display the data in a formatted, color-coded manner, potentially using tables for lists or syntax-highlighted JSON for objects.
-        -   `ink` will manage the rendering to the terminal, including any loading indicators or interactive elements.
+        -   The `data` will be displayed using `console.log` with basic formatting. This might involve simple string concatenation or `JSON.stringify` for objects, but without advanced UI elements.
 
 ## Pseudocode
 
@@ -54,7 +52,7 @@ async (argv) => {
     try {
         // ... (API call logic from T-04)
 
-        const responseData = response.data; // Assuming response is from axios
+        const responseData = await response.json(); // Assuming response is from fetch
 
         if (isJsonOutput) {
             console.log(JSON.stringify(responseData, null, 2));

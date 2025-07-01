@@ -37,7 +37,7 @@ Implement the ability to transform API responses based on user-defined rules. Th
 ### 3. Integration with `call` Command
 
 -   **Post-Response Processing:**
-    -   In the `call` command (Phase 2, T-04), after receiving a successful `axios` response and before passing it to the dual-mode output (Phase 2, T-05):
+    -   In the `call` command (Phase 2, T-04), after receiving a successful `fetch` response and before passing it to the dual-mode output (Phase 2, T-05):
         -   Check if the `endpointDefinition` has a `transform` object.
         -   If it does, call `applyTransformation(response.data, endpointDefinition.transform)`.
         -   Pass the *transformed* data to the dual-mode output function.
@@ -91,8 +91,8 @@ function applyTransformation(responseData, transformRules) {
 
 // Example integration in T-04 (call command) pseudocode:
 // ...
-// const response = await axios(requestConfig);
-// let responseData = response.data;
+// const response = await fetch(requestUrl, requestOptions);
+// let responseData = await response.json();
 
 // if (endpointDefinition.transform) {
 //     try {
