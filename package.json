@@ -1,0 +1,32 @@
+{
+  "name": "ovrmnd-cli",
+  "version": "1.0.0",
+  "description": "A universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any REST API.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kjbrum/ovrmnd-cli.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kjbrum/ovrmnd-cli/issues"
+  },
+  "homepage": "https://github.com/kjbrum/ovrmnd-cli#readme",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "dotenv": "^17.0.1",
+    "flat-cache": "^6.1.11",
+    "ink": "^6.0.1",
+    "js-yaml": "^4.1.0",
+    "react": "^19.1.0",
+    "yargs": "^18.0.0"
+  }
+}
