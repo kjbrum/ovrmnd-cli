@@ -5,7 +5,7 @@
 
 ## Objective
 
-Implement the core configuration loading mechanism for the Ovrmnd CLI. This engine will be responsible for discovering, reading, and parsing YAML configuration files from both a global (`~/.config/ovrmnd/`) and a local (`./ovrmnd/`) directory, with local configurations overriding global ones.
+Implement the core configuration loading mechanism for the Ovrmnd CLI. This engine will be responsible for discovering, reading, and parsing YAML configuration files from both a global (`~/.ovrmnd/`) and a local (`./.ovrmnd/`) directory, with local configurations overriding global ones.
 
 ## Technical Plan
 
@@ -13,7 +13,7 @@ Implement the core configuration loading mechanism for the Ovrmnd CLI. This engi
 
 -   **Global Directory:**
     -   Use the `os.homedir()` method from Node.js's built-in `os` module to get the user's home directory.
-    -   Use the `path.join()` method from the `path` module to construct the full, cross-platform-compatible path to `~/.config/ovrmnd/`.
+    -   Use the `path.join()` method from the `path` module to construct the full, cross-platform-compatible path to `~/.ovrmnd/`.
     -   Use `fs.existsSync()` to check if the directory exists. If not, the loader will simply ignore it.
 -   **Local Directory:**
     -   Use `process.cwd()` to get the current working directory where the CLI is being executed.
@@ -47,8 +47,8 @@ const os = require('os');
 const yaml = require('js-yaml');
 
 function loadConfigurations() {
-    const globalConfigPath = path.join(os.homedir(), '.config', 'ovrmnd');
-    const localConfigPath = path.join(process.cwd(), 'ovrmnd');
+    const globalConfigPath = path.join(os.homedir(), '.ovrmnd');
+    const localConfigPath = path.join(process.cwd(), '.ovrmnd');
 
     let globalConfigs = {};
     let localConfigs = {};

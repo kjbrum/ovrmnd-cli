@@ -34,10 +34,6 @@ As an AI agent, you will be able to use the Ovrmnd CLI to perform various action
 - **Package Manager:** npm
 - **Key Libraries:** `yargs` (for CLI commands), `js-yaml` (for config parsing), `dotenv` (for environment variables), `flat-cache` (for caching), and native `fetch` for HTTP requests. (Note: `ink` for human-friendly UI is deferred for later consideration.)
 
-## Documentation
+## General Notes
 
-### yargs
-
-- API: https://github.com/yargs/yargs/blob/main/docs/api.md
-- TypeScript: https://github.com/yargs/yargs/blob/main/docs/typescript.md
-- Advanced usage: https://github.com/yargs/yargs/blob/main/docs/advanced.md
+- **Configuration File Locations**: Configuration files are checked in `~/.ovrmnd/` (user home directory) and `./.ovrmnd/` (current working directory).

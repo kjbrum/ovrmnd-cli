@@ -10,7 +10,7 @@ This phase focuses on implementing the absolute minimum required to make a singl
 
 | Task ID | Description                                                                                                                            | Status      |
 | :------ | :------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
-| T-01    | **Implement YAML Config Engine (F-01):** Load and parse YAML files from global and local directories.                                  | `Planned` |
+| T-01    | **Implement YAML Config Engine (F-01):** Load and parse YAML files from global (`~/.ovrmnd/`) and local (`./.ovrmnd/`) directories.                                  | `Planned` |
 | T-02    | **Define YAML Schema (F-02):** Implement the logic to handle the `serviceName`, `baseUrl`, `authentication`, and `endpoints` schema.      | `Planned` |
 | T-03    | **Implement Authentication (F-09):** Handle Bearer Token and API Key authentication, sourcing credentials from environment variables.      | `Planned` |
 | T-04    | **Implement `call` Command (F-03):** Create the `call` command to execute API requests based on the YAML configuration.                  | `Planned` |
