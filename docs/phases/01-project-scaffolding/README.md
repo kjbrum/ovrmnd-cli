@@ -68,6 +68,7 @@ ovrmnd-cli/
 - [ ] Can run `npm run build` successfully
 - [ ] Can run `npm test` with at least one passing test
 - [ ] Can run `npm run lint` with no errors
+- [ ] Can run `npm run format` to format all TypeScript files
 - [ ] Can execute `ovrmnd --help` and see help output
 - [ ] Error handling catches and formats errors appropriately
 - [ ] Debug logging can be enabled with DEBUG environment variable

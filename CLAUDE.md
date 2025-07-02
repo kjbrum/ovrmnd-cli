@@ -8,7 +8,7 @@ Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs
 
 ## Current Status & Important Files
 
-**Project Phase**: Planning Complete - Ready for Phase 1 Implementation
+**Project Phase**: Phase 1 Complete - Ready for Phase 2 Implementation
 
 **Key Documentation**:
 - `docs/phases/PROGRESS.md` - **ALWAYS CHECK FIRST** to understand current implementation status
@@ -21,8 +21,6 @@ Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs
 - After learnings: Update `LEARNINGS.md`
 
 ## Development Commands
-
-**Note**: Project setup is not yet complete. These commands will be available after Phase 1 implementation:
 
 ```bash
 # Development
@@ -45,7 +43,16 @@ ovrmnd [command]        # Run installed CLI
 
 ## Architecture & Code Structure
 
-### Core Components (To Be Implemented)
+### Core Components
+
+**Already Implemented (Phase 1)**:
+- TypeScript project with strict configuration
+- Yargs CLI framework with command pattern
+- Core utilities: error handling, logging, config utils, output formatter
+- Project directory structure
+- Base command class for consistent command implementation
+
+**To Be Implemented**:
 
 1. **CLI Framework** (`src/cli/`)
    - Command parser using yargs
@@ -124,6 +131,7 @@ aliases:                       # Optional: Shortcuts
 - **Environment Variables**: Never commit secrets, use .env.example
 - **Testing**: Write tests alongside implementation
 - **Documentation**: Update README.md for user-facing changes
+- **Linting and Code Formatting**: After making code changes, always lint and format everything using `npm run lint` and `npm run format`
 
 ## Common Tasks
 

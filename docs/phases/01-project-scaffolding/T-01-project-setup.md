@@ -93,18 +93,40 @@ npm install --save-dev eslint @typescript-eslint/parser @typescript-eslint/eslin
 
 ### 4. Prettier Configuration
 ```bash
-npm install --save-dev prettier eslint-config-prettier eslint-plugin-prettier
+npm install --save-dev prettier
 ```
 
-```json
-// .prettierrc
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2
-}
+```yaml
+# .prettierrc (YAML format)
+tabWidth: 2
+useTabs: false
+trailingComma: 'all'
+semi: false
+singleQuote: true
+endOfLine: 'lf'
+bracketSpacing: true
+arrowParens: 'avoid'
+printWidth: 70
+htmlWhitespaceSensitivity: 'css'
+proseWrap: 'preserve'
+bracketSameLine: false
+jsxSingleQuote: false
+quoteProps: 'as-needed'
+plugins: []
+```
+
+```
+# .prettierignore
+node_modules/
+dist/
+coverage/
+.cache/
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+*.log
 ```
 
 ### 5. Jest Configuration
@@ -145,7 +167,7 @@ module.exports = {
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -17,4 +17,55 @@ Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to 
 
 ## Getting Started
 
-_Instructions on how to install and use Ovrmnd CLI will be added here once the first version is released._
+### Development Setup
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Build the project:
+```bash
+npm run build
+```
+
+3. Run in development mode:
+```bash
+npm run dev
+```
+
+### Testing
+
+```bash
+npm test
+```
+
+### Available Scripts
+
+- `npm run build` - Build the TypeScript project
+- `npm run dev` - Run TypeScript compiler in watch mode
+- `npm test` - Run tests
+- `npm run lint` - Lint the codebase
+- `npm run typecheck` - Run TypeScript type checking
+
+## Project Structure
+
+```
+src/
+├── commands/       # CLI commands
+├── config/         # Configuration management
+├── api/           # API client implementation
+├── cache/         # Response caching
+├── transform/     # Response transformation
+├── utils/         # Utility functions
+└── types/         # TypeScript type definitions
+```
+
+## Available Commands
+
+- `ovrmnd version` - Show version information
+- More commands coming soon...
+
+## Development Progress
+
+See [docs/phases/PROGRESS.md](docs/phases/PROGRESS.md) for detailed implementation progress.
