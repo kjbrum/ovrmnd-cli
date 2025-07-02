@@ -2,8 +2,8 @@
   "name": "ovrmnd-cli",
   "version": "1.0.0",
   "description": "A universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any REST API.",
-  "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "main": "dist/src/cli.js",
+  "bin": "dist/src/cli.js",
   "type": "module",
   "engines": {
     "node": ">=16"

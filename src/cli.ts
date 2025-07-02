@@ -2,10 +2,10 @@
 
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import { loadConfigurations } from './config'
-import { validateSchema, mapParameters } from './schema'
-import { applyAuthentication } from './auth'
-import { handleError } from './error'
+import { loadConfigurations } from './utils/config'
+import { validateSchema, mapParameters } from './utils/schema'
+import { applyAuthentication } from './utils/auth'
+import { handleError } from './utils/error'
 
 // Define the main CLI application
 yargs(hideBin(process.argv))

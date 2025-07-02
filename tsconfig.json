@@ -1,11 +1,14 @@
 {
-	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
+		"target": "es2022",
 		"outDir": "dist",
 		"isolatedModules": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 		"module": "ESNext",
-		"moduleResolution": "node",
-		"lib": ["es2022", "dom"]
+		"moduleResolution": "bundler",
+		"lib": ["es2022", "dom"],
+		"skipLibCheck": true
 	},
 	"include": ["src", "test"]
 }

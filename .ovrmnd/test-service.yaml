@@ -1,0 +1,6 @@
+serviceName: test-service
+baseUrl: http://localhost:3000
+endpoints:
+  - name: get-data
+    method: GET
+    path: /data
