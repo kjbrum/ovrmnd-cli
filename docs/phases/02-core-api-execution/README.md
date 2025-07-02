@@ -1,27 +1,110 @@
 # Phase 2: Core API Execution
 
-**Status:** `Planning Complete`
-
 ## Overview
 
-This phase focuses on implementing the absolute minimum required to make a single, authenticated API call. It includes setting up the YAML configuration engine, defining the schema, handling authentication, and executing the `call` command. The goal is to have a functional CLI that can interact with a REST API.
+This phase implements the core functionality of Ovrmnd CLI - the ability to make API calls based on YAML configurations. This is the heart of the tool and delivers the minimum viable product (MVP) functionality.
 
-## Task List
+## Objectives
 
-| Task ID | Description                                                                                                                            | Status      |
-| :------ | :------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
-| T-01    | **Implement YAML Config Engine (F-01):** Load and parse YAML files from global (`~/.ovrmnd/`) and local (`./.ovrmnd/`) directories.                                  | `Planned` |
-| T-02    | **Define YAML Schema (F-02):** Implement the logic to handle the `serviceName`, `baseUrl`, `authentication`, and `endpoints` schema.      | `Planned` |
-| T-03    | **Implement Authentication (F-09):** Handle Bearer Token and API Key authentication, sourcing credentials from environment variables.      | `Planned` |
-| T-04    | **Implement `call` Command (F-03):** Create the `call` command to execute API requests based on the YAML configuration.                  | `Planned` |
-| T-05    | **Implement Dual-Mode Output (F-12):** Create both human-friendly and machine-readable (JSON) output formats.                            | `Planned` |
-| T-06    | **Implement Standardized Error Output (F-13):** Ensure all errors are output in a structured JSON format.                               | `Planned` |
+1. Build a robust YAML configuration engine with discovery and validation
+2. Implement authentication mechanisms (Bearer Token, API Key)
+3. Create the `call` command for executing API requests
+4. Support both human-friendly and machine-readable (JSON) output modes
+5. Provide standardized error handling for LLM consumption
 
-## Progress
+## Key Deliverables
 
-- **T-01: Implement YAML Config Engine (F-01):** `Planned`
-- **T-02: Define YAML Schema (F-02):** `Planned`
-- **T-03: Implement Authentication (F-09):** `Planned`
-- **T-04: Implement `call` Command (F-03):** `Planned`
-- **T-05: Implement Dual-Mode Output (F-12):** `Planned`
-- **T-06: Implement Standardized Error Output (F-13):** `Planned`
+- YAML parsing and validation system
+- Configuration discovery (global and local)
+- HTTP request execution with proper authentication
+- Dual-mode output system
+- Comprehensive error handling
+
+## Architecture Decisions
+
+### Configuration Management
+- Global configs in `~/.ovrmnd/`
+- Local configs in `./.ovrmnd/`
+- Local overrides global for same service name
+- Environment variable resolution with `${VAR_NAME}` syntax
+
+### YAML Schema Design
+```yaml
+serviceName: github
+baseUrl: https://api.github.com
+authentication:
+  type: bearer  # or 'apiKey'
+  token: ${GITHUB_TOKEN}
+endpoints:
+  - name: get-user
+    method: GET
+    path: /users/{username}  # Auto-detected as required param
+    cacheTTL: 300
+  - name: create-issue
+    method: POST
+    path: /repos/{owner}/{repo}/issues
+    bodyType: json
+    parameters:
+      - name: title
+        type: body
+        required: true
+      - name: body
+        type: body
+        required: false
+```
+
+### Parameter Resolution
+1. Path parameters extracted from URL template
+2. CLI arguments mapped based on parameter definitions
+3. Body parameters combined into request body
+4. Query parameters appended to URL
+5. Header parameters added to request headers
+
+### Output Modes
+- **Default (Human)**: Formatted console output with colors
+- **JSON Mode** (`--json`): Clean JSON for LLM parsing
+- **Debug Mode** (`--debug`): Verbose logging to stderr
+
+## Technical Considerations
+
+### Path Parameter Detection
+- Regex pattern: `/{([^/}]+)}/g`
+- Automatically marked as required
+- Cannot be redefined in parameters list
+
+### Error Schema
+```json
+{
+  "success": false,
+  "error": {
+    "code": "AUTH_FAILED",
+    "message": "Authentication failed",
+    "details": {
+      "status": 401,
+      "response": {}
+    }
+  }
+}
+```
+
+### Security
+- Never log sensitive data (tokens, passwords)
+- Environment variables only for secrets
+- Validate against hardcoded secrets in YAML
+
+## Dependencies
+
+- `js-yaml`: YAML parsing
+- `node-fetch` or native `fetch`: HTTP requests
+- `joi` or `zod`: Schema validation (optional)
+
+## Success Criteria
+
+- [ ] Can parse and validate YAML configurations
+- [ ] Can discover configs from global and local directories
+- [ ] Can make authenticated API calls
+- [ ] Can handle all parameter types (path, query, body, header)
+- [ ] JSON output mode works correctly for LLMs
+- [ ] Errors are properly formatted in JSON mode
+- [ ] Environment variables are resolved correctly
+- [ ] Local configs override global configs

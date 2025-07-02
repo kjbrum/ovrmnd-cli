@@ -1,88 +1,147 @@
-# Task: T-01 - Implement YAML Config Engine
+# Task: Implement YAML Configuration Engine
 
-**Phase:** 2: Core API Execution
-**Status:** `Not Started`
+## Overview
 
-## Objective
+Build the foundation for loading, parsing, and managing YAML configuration files from both global (`~/.ovrmnd/`) and local (`./.ovrmnd/`) directories.
 
-Implement the core configuration loading mechanism for the Ovrmnd CLI. This engine will be responsible for discovering, reading, and parsing YAML configuration files from both a global (`~/.ovrmnd/`) and a local (`./.ovrmnd/`) directory, with local configurations overriding global ones.
+## Requirements
 
-## Technical Plan
+1. **Discovery Logic**
+   - Scan `~/.ovrmnd/*.yaml` and `~/.ovrmnd/*.yml` for global configs
+   - Scan `./.ovrmnd/*.yaml` and `./.ovrmnd/*.yml` for local configs
+   - Support subdirectories for organization
 
-### 1. Directory Discovery
+2. **Loading & Parsing**
+   - Use `js-yaml` for parsing YAML files
+   - Handle parsing errors gracefully
+   - Support both `.yaml` and `.yml` extensions
 
--   **Global Directory:**
-    -   Use the `os.homedir()` method from Node.js's built-in `os` module to get the user's home directory.
-    -   Use the `path.join()` method from the `path` module to construct the full, cross-platform-compatible path to `~/.ovrmnd/`.
-    -   Use `fs.existsSync()` to check if the directory exists. If not, the loader will simply ignore it.
--   **Local Directory:**
-    -   Use `process.cwd()` to get the current working directory where the CLI is being executed.
-    -   Use `path.join()` to construct the path to the `./ovrmnd/` directory.
-    -   Use `fs.existsSync()` to check for its existence.
+3. **Merging Strategy**
+   - Local configs override global configs with same service name
+   - Merge at the service level, not individual properties
+   - Maintain a registry of all discovered services
 
-### 2. File Reading and Parsing
+4. **Caching**
+   - Cache parsed configurations in memory
+   - Invalidate cache when files change (optional for V1)
 
--   **File Discovery:**
-    -   For each of the global and local directories, use `fs.readdir()` to get a list of all files.
-    -   Filter this list to include only files with a `.yml` or `.yaml` extension.
--   **Parsing:**
-    -   For each discovered YAML file, read its content using `fs.readFileSync()`.
-    -   Use the `js-yaml.load()` method to parse the YAML content into a JavaScript object.
-    -   Wrap the file reading and parsing logic in a `try...catch` block to gracefully handle potential file system errors or YAML syntax errors.
+## Implementation Steps
 
-### 3. Configuration Merging and Overriding
-
--   **Loading Order:**
-    1.  Load all global configurations into a single JavaScript object, where the keys are the `serviceName` and the values are the service configurations.
-    2.  Load all local configurations into a separate object.
--   **Override Logic:**
-    -   Use `Object.assign()` or the object spread syntax (`...`) to merge the local configurations over the global configurations. This ensures that if a service with the same name exists in both locations, the local version will take precedence.
-
-## Pseudocode
-
-```javascript
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const yaml = require('js-yaml');
-
-function loadConfigurations() {
-    const globalConfigPath = path.join(os.homedir(), '.ovrmnd');
-    const localConfigPath = path.join(process.cwd(), '.ovrmnd');
-
-    let globalConfigs = {};
-    let localConfigs = {};
-
-    if (fs.existsSync(globalConfigPath)) {
-        globalConfigs = loadFromDirectory(globalConfigPath);
-    }
-
-    if (fs.existsSync(localConfigPath)) {
-        localConfigs = loadFromDirectory(localConfigPath);
-    }
-
-    return { ...globalConfigs, ...localConfigs };
+### 1. Create Config Types
+```typescript
+// src/types/config.ts
+export interface ServiceConfig {
+  serviceName: string;
+  baseUrl: string;
+  authentication: AuthConfig;
+  endpoints: EndpointConfig[];
+  aliases?: AliasConfig[];
 }
 
-function loadFromDirectory(directoryPath) {
-    const configs = {};
-    const files = fs.readdirSync(directoryPath);
+export interface AuthConfig {
+  type: 'bearer' | 'apiKey';
+  token?: string;
+  header?: string;
+  queryParam?: string;
+}
 
-    for (const file of files) {
-        if (file.endsWith('.yml') || file.endsWith('.yaml')) {
-            try {
-                const filePath = path.join(directoryPath, file);
-                const fileContent = fs.readFileSync(filePath, 'utf8');
-                const parsedYaml = yaml.load(fileContent);
-                if (parsedYaml && parsedYaml.serviceName) {
-                    configs[parsedYaml.serviceName] = parsedYaml;
-                }
-            } catch (error) {
-                console.error(`Error loading or parsing ${file}:`, error);
-            }
-        }
-    }
-
-    return configs;
+export interface EndpointConfig {
+  name: string;
+  method: string;
+  path: string;
+  bodyType?: 'json' | 'form';
+  parameters?: ParameterConfig[];
+  cacheTTL?: number;
+  transform?: TransformConfig;
 }
 ```
+
+### 2. Implement Config Discovery
+```typescript
+// src/config/discovery.ts
+export async function discoverConfigs(): Promise<Map<string, ServiceConfig>> {
+  const configs = new Map<string, ServiceConfig>();
+  
+  // Load global configs
+  const globalConfigs = await loadConfigsFromDir('~/.ovrmnd');
+  
+  // Load local configs
+  const localConfigs = await loadConfigsFromDir('./.ovrmnd');
+  
+  // Merge with local overriding global
+  return mergeConfigs(globalConfigs, localConfigs);
+}
+```
+
+### 3. Implement YAML Loading
+```typescript
+// src/config/loader.ts
+export async function loadYamlFile(filePath: string): Promise<ServiceConfig> {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const config = yaml.load(content) as ServiceConfig;
+    
+    // Basic validation
+    validateServiceConfig(config);
+    
+    return config;
+  } catch (error) {
+    throw new ConfigError(`Failed to load ${filePath}: ${error.message}`);
+  }
+}
+```
+
+### 4. Environment Variable Resolution
+```typescript
+// src/config/resolver.ts
+export function resolveEnvVars(config: ServiceConfig): ServiceConfig {
+  // Deep clone to avoid mutations
+  const resolved = JSON.parse(JSON.stringify(config));
+  
+  // Recursively replace ${VAR_NAME} with process.env.VAR_NAME
+  walkObject(resolved, (value) => {
+    if (typeof value === 'string') {
+      return value.replace(/\${([^}]+)}/g, (_, varName) => {
+        return process.env[varName] || '';
+      });
+    }
+    return value;
+  });
+  
+  return resolved;
+}
+```
+
+## Testing Strategy
+
+1. **Unit Tests**
+   - Test YAML parsing with valid/invalid files
+   - Test environment variable resolution
+   - Test config merging logic
+
+2. **Integration Tests**
+   - Test discovery with mock file system
+   - Test full config loading pipeline
+
+3. **Test Cases**
+   - Valid YAML with all features
+   - Invalid YAML syntax
+   - Missing required fields
+   - Environment variable resolution
+   - Local override of global config
+
+## Error Handling
+
+1. **File Not Found**: Log debug message, continue
+2. **YAML Parse Error**: Log error with file path, skip file
+3. **Validation Error**: Log specific validation failure
+4. **Missing Env Var**: Leave empty or throw based on context
+
+## Success Criteria
+
+- [ ] Can discover YAML files from both directories
+- [ ] Can parse valid YAML files
+- [ ] Handles invalid YAML gracefully
+- [ ] Local configs override global configs
+- [ ] Environment variables are resolved
+- [ ] Comprehensive error messages

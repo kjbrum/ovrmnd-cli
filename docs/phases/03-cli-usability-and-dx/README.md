@@ -1,21 +1,38 @@
-# Phase 3: CLI Usability & DX
-
-**Status:** `Planning Complete`
+# Phase 3: CLI Usability & Developer Experience
 
 ## Overview
 
-This phase focuses on improving the developer experience (DX) by adding commands that help users discover, validate, and debug their configurations. These features will make the CLI more intuitive and easier to use.
+This phase focuses on making the CLI user-friendly and providing excellent developer experience through discovery commands, validation, and debugging capabilities.
 
-## Task List
+## Objectives
 
-| Task ID | Description                                                                                                                            | Status      |
-| :------ | :------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
-| T-01    | **Implement `list` Command (F-04):** Create the `list` command to show available services and endpoints.                               | `Planned` |
-| T-02    | **Implement `validate` Command (F-07):** Create the `validate` command to check YAML files for syntax and schema errors.                | `Planned` |
-| T-03    | **Implement Debug Mode (F-14):** Add a `--debug` flag to enable verbose logging for troubleshooting.                                     | `Planned` |
+1. Implement the `list` command for service/endpoint discovery
+2. Create the `validate` command for configuration checking
+3. Enhance debug mode for troubleshooting
+4. Improve error messages and user feedback
 
-## Progress
+## Key Features
 
-- **T-01: Implement `list` Command (F-04):** `Planned`
-- **T-02: Implement `validate` Command (F-07):** `Planned`
-- **T-03: Implement Debug Mode (F-14):** `Planned`
+### List Command
+- `ovrmnd list services` - Show all available services
+- `ovrmnd list endpoints <service>` - Show endpoints with parameters
+- `ovrmnd list aliases <service>` - Show configured aliases
+
+### Validate Command
+- Syntax validation for YAML files
+- Schema compliance checking
+- Parameter conflict detection
+- Authentication configuration validation
+
+### Debug Mode
+- Detailed request/response logging
+- Configuration resolution tracing
+- Environment variable resolution display
+- Performance timing information
+
+## Success Criteria
+
+- [ ] Users can discover available services and endpoints
+- [ ] Configuration errors are caught before execution
+- [ ] Debug output helps troubleshoot issues
+- [ ] Error messages are clear and actionable

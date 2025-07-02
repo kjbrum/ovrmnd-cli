@@ -1,6 +1,6 @@
 # Learnings
 
-This file documents important learnings and findings from building this project using the Gemini CLI agent.
+This file documents important learnings and findings from building this project.
 
 ## General
 

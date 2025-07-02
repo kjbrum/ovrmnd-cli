@@ -1,106 +1,216 @@
-# Task: T-02 - Define YAML Schema
+# Task: Define YAML Schema & Parameter Mapping
 
-**Phase:** 2: Core API Execution
-**Status:** `Not Started`
+## Overview
 
-## Objective
+Define the complete YAML schema for service configurations and implement the logic for automatic path parameter detection and parameter mapping.
 
-Define and implement the logic to handle the YAML schema for service configurations. This includes validating the structure of the parsed YAML object and mapping the defined parameters to the appropriate parts of an API request.
+## Requirements
 
-## Technical Plan
+1. **Schema Definition**
+   - Clear TypeScript interfaces for all configuration elements
+   - Support for all authentication types
+   - Flexible parameter definitions
 
-### 1. Schema Validation
+2. **Path Parameter Detection**
+   - Automatically detect `{paramName}` in paths
+   - Mark as required parameters
+   - Prevent redefinition in parameters list
 
--   **Validation Function:**
-    -   Create a dedicated function, `validateSchema(config)`, that accepts a parsed YAML object.
-    -   This function will be responsible for checking the presence and basic types of all required fields.
--   **Top-Level Keys:**
-    -   The function will first check for the existence of the required top-level keys: `serviceName` (string), `baseUrl` (string), and `endpoints` (array).
--   **Endpoint Validation:**
-    -   It will then iterate through the `endpoints` array and validate each endpoint object.
-    -   For each endpoint, it will check for the required keys: `name` (string), `method` (string, one of GET, POST, PUT, DELETE, etc.), and `path` (string).
--   **Authentication Validation:**
-    -   The `authentication` object will be validated to ensure it has a `type` (string, either `bearer` or `apiKey`) and a corresponding `token` or `apiKey` field.
+3. **Parameter Mapping**
+   - Map CLI arguments to appropriate parameter types
+   - Support body, query, header parameters
+   - Handle different body types (JSON, form data)
 
-### 2. Parameter Mapping
+4. **Validation**
+   - Ensure required fields are present
+   - Validate parameter types and conflicts
+   - Check for duplicate parameter names
 
--   **Parameter Mapping:**
-    -   Create a function, `mapParameters(endpoint, args)`, that takes an endpoint object and the command-line arguments as input.
--   **Path Parameters:**
-    -   The function will automatically identify path parameters by parsing the `path` string for any values enclosed in curly braces (e.g., `{userId}`).
-    -   It will then replace these placeholders with the corresponding values from the `args` object.
-    -   **Validation Note:** While the schema defines the structure, the actual presence of required path parameters will be validated at runtime during the `call` command execution (T-04).
--   **Other Parameters:**
-    -   The function will iterate through the `parameters` array in the endpoint definition.
-    -   Based on the `type` of each parameter (`body`, `query`, or `header`), it will add the corresponding argument to the request body, query string, or headers.
+## Schema Structure
 
-## Pseudocode
+### Complete YAML Example
+```yaml
+serviceName: shopify-admin
+baseUrl: https://{shop}.myshopify.com/admin/api/2024-01
+authentication:
+  type: apiKey
+  header: X-Shopify-Access-Token
+  token: ${SHOPIFY_ACCESS_TOKEN}
 
-```javascript
-function validateSchema(config) {
-    if (!config.serviceName || typeof config.serviceName !== 'string') {
-        throw new Error('Missing or invalid serviceName');
-    }
-    if (!config.baseUrl || typeof config.baseUrl !== 'string') {
-        throw new Error('Missing or invalid baseUrl');
-    }
-    if (!Array.isArray(config.endpoints)) {
-        throw new Error('Missing or invalid endpoints array');
-    }
+endpoints:
+  - name: get-product
+    method: GET
+    path: /products/{productId}.json
+    cacheTTL: 300
+    transform:
+      fields: ["product.id", "product.title", "product.vendor"]
+      
+  - name: create-product
+    method: POST
+    path: /products.json
+    bodyType: json
+    parameters:
+      - name: product
+        type: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title: { type: string }
+            vendor: { type: string }
+            
+  - name: update-inventory
+    method: POST
+    path: /inventory_levels/set.json
+    parameters:
+      - name: location_id
+        type: body
+        required: true
+      - name: inventory_item_id
+        type: body
+        required: true
+      - name: available
+        type: body
+        required: true
+        
+aliases:
+  - name: my-products
+    endpoint: get-product
+    args:
+      shop: my-store
+  - name: create-draft
+    endpoint: create-product
+    args:
+      shop: my-store
+      product:
+        status: draft
+```
 
-    for (const endpoint of config.endpoints) {
-        if (!endpoint.name || typeof endpoint.name !== 'string') {
-            throw new Error(`Invalid endpoint: missing name`);
-        }
-        if (!endpoint.method || typeof endpoint.method !== 'string') {
-            throw new Error(`Invalid endpoint "${endpoint.name}": missing method`);
-        }
-        if (!endpoint.path || typeof endpoint.path !== 'string') {
-            throw new Error(`Invalid endpoint "${endpoint.name}": missing path`);
-        }
-    }
+## Implementation Details
 
-    if (config.authentication) {
-        if (!config.authentication.type || typeof config.authentication.type !== 'string') {
-            throw new Error('Missing or invalid authentication type');
-        }
-        if (config.authentication.type === 'bearer' && !config.authentication.token) {
-            throw new Error('Missing token for bearer authentication');
-        }
-        if (config.authentication.type === 'apiKey' && !config.authentication.apiKey) {
-            throw new Error('Missing apiKey for apiKey authentication');
-        }
-    }
-}
+### 1. Parameter Types
+```typescript
+export type ParameterType = 'body' | 'query' | 'header' | 'path';
 
-function mapParameters(endpoint, args) {
-    let finalPath = endpoint.path;
-    const pathParams = endpoint.path.match(/\{([^{}]+)\}/g) || [];
-    for (const param of pathParams) {
-        const paramName = param.slice(1, -1);
-        if (args[paramName]) {
-            finalPath = finalPath.replace(param, args[paramName]);
-        }
-    }
-
-    const body = {};
-    const query = {};
-    const headers = {};
-
-    if (endpoint.parameters) {
-        for (const param of endpoint.parameters) {
-            if (args[param.name]) {
-                if (param.type === 'body') {
-                    body[param.name] = args[param.name];
-                } else if (param.type === 'query') {
-                    query[param.name] = args[param.name];
-                } else if (param.type === 'header') {
-                    headers[param.name] = args[param.name];
-                }
-            }
-        }
-    }
-
-    return { finalPath, body, query, headers };
+export interface ParameterConfig {
+  name: string;
+  type: ParameterType;
+  required?: boolean;
+  default?: any;
+  description?: string;
+  schema?: any; // For complex validation
 }
 ```
+
+### 2. Path Parameter Detection
+```typescript
+export function extractPathParameters(path: string): string[] {
+  const params: string[] = [];
+  const regex = /{([^}]+)}/g;
+  let match;
+  
+  while ((match = regex.exec(path)) !== null) {
+    params.push(match[1]);
+  }
+  
+  return params;
+}
+
+export function buildEffectiveParameters(endpoint: EndpointConfig): Map<string, ParameterConfig> {
+  const params = new Map<string, ParameterConfig>();
+  
+  // Add path parameters as required
+  const pathParams = extractPathParameters(endpoint.path);
+  pathParams.forEach(name => {
+    params.set(name, {
+      name,
+      type: 'path',
+      required: true
+    });
+  });
+  
+  // Add defined parameters
+  endpoint.parameters?.forEach(param => {
+    if (params.has(param.name) && param.type === 'path') {
+      throw new Error(`Path parameter '${param.name}' cannot be redefined`);
+    }
+    params.set(param.name, param);
+  });
+  
+  return params;
+}
+```
+
+### 3. Request Building
+```typescript
+export interface RequestBuilder {
+  buildUrl(endpoint: EndpointConfig, args: Record<string, any>): string;
+  buildHeaders(auth: AuthConfig, params: Map<string, ParameterConfig>, args: Record<string, any>): Headers;
+  buildBody(endpoint: EndpointConfig, params: Map<string, ParameterConfig>, args: Record<string, any>): any;
+  buildQuery(params: Map<string, ParameterConfig>, args: Record<string, any>): URLSearchParams;
+}
+```
+
+### 4. Validation Rules
+```typescript
+export function validateEndpoint(endpoint: EndpointConfig): ValidationResult {
+  const errors: string[] = [];
+  
+  // Check required fields
+  if (!endpoint.name) errors.push('Endpoint name is required');
+  if (!endpoint.method) errors.push('HTTP method is required');
+  if (!endpoint.path) errors.push('Path is required');
+  
+  // Validate method
+  const validMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+  if (!validMethods.includes(endpoint.method.toUpperCase())) {
+    errors.push(`Invalid method: ${endpoint.method}`);
+  }
+  
+  // Check for path parameter conflicts
+  const pathParams = extractPathParameters(endpoint.path);
+  endpoint.parameters?.forEach(param => {
+    if (pathParams.includes(param.name) && param.type !== 'path') {
+      errors.push(`Parameter '${param.name}' is a path parameter and cannot have type '${param.type}'`);
+    }
+  });
+  
+  return { valid: errors.length === 0, errors };
+}
+```
+
+## Testing Strategy
+
+1. **Schema Validation Tests**
+   - Valid configurations
+   - Missing required fields
+   - Invalid parameter types
+   - Path parameter conflicts
+
+2. **Parameter Extraction Tests**
+   - Simple path parameters: `/users/{id}`
+   - Multiple parameters: `/repos/{owner}/{repo}/issues`
+   - No parameters: `/users`
+
+3. **Request Building Tests**
+   - URL construction with path parameters
+   - Query parameter encoding
+   - Body construction for different content types
+   - Header injection
+
+## Edge Cases
+
+1. **Nested Path Parameters**: `/api/{version}/users/{id}`
+2. **Special Characters**: Parameters with `-`, `_`, etc.
+3. **Array Parameters**: Query parameters that accept arrays
+4. **Complex Body Schemas**: Nested objects in request body
+5. **Optional Path Segments**: `/products{.format}` style paths
+
+## Success Criteria
+
+- [ ] TypeScript interfaces cover all schema elements
+- [ ] Path parameters are automatically detected
+- [ ] Parameter conflicts are caught during validation
+- [ ] Request building handles all parameter types
+- [ ] Comprehensive validation with helpful errors
+- [ ] Support for complex body structures
