@@ -1,0 +1,80 @@
+# Testing configuration for Ovrmnd CLI
+# This file should be kept up to date with all YAML features
+# Use: node dist/cli.js call testing.<endpoint>
+
+serviceName: testing
+baseUrl: https://jsonplaceholder.typicode.com
+
+# Example authentication (commented out for public API)
+# authentication:
+#   type: bearer
+#   token: ${TEST_API_TOKEN}
+
+endpoints:
+  # Basic GET endpoint with path parameter
+  - name: getUser
+    method: GET
+    path: /users/{id}
+    
+  # GET endpoint returning array
+  - name: listUsers
+    method: GET
+    path: /users
+    
+  # POST endpoint for testing body parameters
+  - name: createUser
+    method: POST
+    path: /users
+    headers:
+      Content-Type: application/json
+    
+  # GET with query parameters
+  - name: listPosts
+    method: GET
+    path: /posts
+    defaultParams:
+      _limit: 10
+      
+  # GET with multiple path parameters
+  - name: getComment
+    method: GET
+    path: /posts/{postId}/comments/{id}
+    
+  # PUT endpoint for updates
+  - name: updateUser
+    method: PUT
+    path: /users/{id}
+    headers:
+      Content-Type: application/json
+      
+  # DELETE endpoint
+  - name: deleteUser
+    method: DELETE
+    path: /users/{id}
+    
+  # Example with cache TTL (when implemented)
+  - name: getTodos
+    method: GET
+    path: /todos
+    cacheTTL: 300  # Cache for 5 minutes
+
+aliases:
+  # Simple alias with pre-filled parameter
+  - name: me
+    endpoint: getUser
+    args:
+      id: '1'
+      
+  # Alias for first page of posts
+  - name: recentPosts
+    endpoint: listPosts
+    args:
+      _page: 1
+      _limit: 5
+      
+  # Alias demonstrating multiple parameters
+  - name: firstComment
+    endpoint: getComment
+    args:
+      postId: '1'
+      id: '1'

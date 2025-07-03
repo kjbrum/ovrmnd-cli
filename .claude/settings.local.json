@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npm run:*)",
       "Bash(node dist/cli.js:*)",
-      "Bash(ovrmnd:*)"
+      "Bash(ovrmnd:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

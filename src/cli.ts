@@ -6,6 +6,7 @@ import { createLogger } from './utils/logger'
 import { handleError } from './utils/error'
 import { readFileSync } from 'fs'
 import path from 'path'
+import { CallCommand } from './commands/call'
 
 const logger = createLogger('cli')
 
@@ -34,6 +35,7 @@ async function main(): Promise<void> {
 
         Usage: $0 <command> [options]`,
       )
+      .command(new CallCommand())
       .demandCommand(1, 'You need at least one command')
       .recommendCommands()
       .strict()
@@ -43,7 +45,7 @@ async function main(): Promise<void> {
       .alias('v', 'version')
       .wrap(yargs.terminalWidth())
       .epilogue(
-        'For more information, visit https://github.com/ovrmnd/cli',
+        'For more information, visit https://github.com/kjbrum/ovrmnd-cli',
       )
       .fail((msg, err, yargs) => {
         if (err) {
