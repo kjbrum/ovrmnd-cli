@@ -1,4 +1,4 @@
-# Run Tests
+# Run Tests Command
 
 <goal>
 Execute all automated test suites and perform comprehensive manual CLI testing to ensure the Ovrmnd CLI is functioning correctly with no regressions.
@@ -115,7 +115,7 @@ node dist/cli.js call testing.nonexistent 2>&1 | jq .
 
 ### 4.2 Human-Friendly Output (--pretty flag)
 - Tables for arrays
-- Colored output (errors in red, success in green)  
+- Colored output (errors in red, success in green)
 - Nested object formatting
 - Clear error messages with help text
 

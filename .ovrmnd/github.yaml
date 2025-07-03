@@ -1,0 +1,40 @@
+serviceName: github
+baseUrl: https://api.github.com
+authentication:
+  type: bearer
+  token: ${GITHUB_TOKEN}
+endpoints:
+  - name: getUser
+    method: GET
+    path: /users/{username}
+    cacheTTL: 300
+  - name: listRepos
+    method: GET
+    path: /users/{username}/repos
+    cacheTTL: 300
+    defaultParams:
+      per_page: 30
+      sort: updated
+  - name: getRepo
+    method: GET
+    path: /repos/{owner}/{repo}
+    cacheTTL: 300
+  - name: searchRepos
+    method: GET
+    path: /search/repositories
+    cacheTTL: 60
+    defaultParams:
+      per_page: 30
+      sort: stars
+  - name: getAuthenticatedUser
+    method: GET
+    path: /user
+    cacheTTL: 600
+aliases:
+  - name: me
+    endpoint: getAuthenticatedUser
+    args: {}
+  - name: myRepos
+    endpoint: listRepos
+    args:
+      username: ${GITHUB_USERNAME}

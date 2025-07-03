@@ -1,4 +1,4 @@
-# New Command
+# New Command Command
 
 <goal>
 Create a new command file in the `.claude/commands` directory with proper structure, clear instructions, and appropriate sections based on user requirements.
