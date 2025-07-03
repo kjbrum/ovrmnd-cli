@@ -95,9 +95,19 @@ This file documents important learnings and findings from building this project.
 - Enables clean piping: `ovrmnd call api.users | jq .`
 - CLI errors use console.error (stderr) while data uses process.stdout.write
 
+## Standardized Error Output
+- Created JsonError interface with consistent structure for LLM parsing
+- Includes error details, help text, and full request/response context
+- OvrmndError enhanced with toJsonError() method for serialization
+- HTTP client captures all context (headers, body, status) in errors
+- formatError method in OutputFormatter handles both JSON and human modes
+- Human format shows error code, message, details, help, and status
+- JSON format includes timestamp and preserves all error metadata
+
 ## Future Considerations
 - Batch operations moved to Phase 5 (Advanced Features)
 - Cache implementation should use flat-cache as planned
-- Error schema for JSON mode should include request details
 - Consider supporting multiple targets: `ovrmnd call github.listRepos api.users`
 - Could add config option to set default output format preference
+- May want to add error retry logic with exponential backoff
+- Consider adding response time tracking in error context

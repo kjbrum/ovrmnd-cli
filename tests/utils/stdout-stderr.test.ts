@@ -69,8 +69,10 @@ describe('stdout/stderr separation', () => {
         'invalid',
       ])
 
-      // Errors should go to stderr
-      expect(stderr).toContain('Error')
+      // Errors should go to stderr in JSON format by default
+      expect(stderr).toContain('"error"')
+      expect(stderr).toContain('"code"')
+      expect(stderr).toContain('PARAM_INVALID')
       expect(stdout).toBe('')
       expect(exitCode).toBe(1)
     })

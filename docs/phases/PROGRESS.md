@@ -226,6 +226,18 @@ None currently identified.
 
 ## Change Log
 
+### 2025-07-03
+- Phase 2 completed (100%):
+  - Standardized Error Output (T-06):
+    - Created JsonError type with full error context
+    - Updated OvrmndError to support request/response context
+    - Implemented formatError in OutputFormatter for both modes
+    - HTTP client now includes full context in errors
+    - Added comprehensive tests for error formatting
+  - Switched default output to JSON (better for LLM consumption)
+  - Changed --json flag to --pretty flag
+  - Moved batch operations to Phase 5 (Advanced Features)
+
 ### 2025-07-02
 - Initial progress tracking document created
 - Phase breakdown completed
@@ -238,7 +250,7 @@ None currently identified.
   - Core utilities implemented (error handling, logging, config)
   - Project directory structure created
   - Base command pattern established
-- Phase 2 progress (87% complete):
+- Phase 2 complete (100%):
   - YAML configuration engine implemented (T-01):
     - YAML parsing with js-yaml
     - Config discovery for global (~/.ovrmnd/) and local (./.ovrmnd/) directories
@@ -264,6 +276,13 @@ None currently identified.
     - All logs go to stderr, data goes to stdout
   - All tests passing (80+ tests)
   - Linting and type checking clean
+  - Standardized Error Output (T-06):
+    - Defined JsonError schema with error details, request/response context
+    - Error transformation in OutputFormatter.formatError()
+    - HTTP errors include full context (headers, body, status)
+    - Network/timeout errors include request details
+    - Human-readable format shows code, message, details, help
+    - JSON format follows consistent schema for LLM parsing
   - Authentication system implemented (T-03):
     - Bearer token authentication
     - API key authentication (header/query)

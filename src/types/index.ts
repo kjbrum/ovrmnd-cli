@@ -106,3 +106,5 @@ export interface CacheStats {
   oldestEntry?: Date
   newestEntry?: Date
 }
+
+export * from './error'

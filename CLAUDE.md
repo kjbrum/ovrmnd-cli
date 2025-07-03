@@ -138,7 +138,7 @@ aliases:                       # Optional: Shortcuts
 - **Environment Variables**: Never commit secrets, use .env.example
 - **Testing**: Write tests alongside implementation
 - **Documentation**: Update README.md for user-facing changes
-- **Linting and Code Formatting**: After making code changes, always lint and format everything using `npm run lint` and `npm run format`
+- **IMPORTANT: Linting and Code Formatting**: After making code changes, always lint and format everything using `npm run lint` and `npm run format`
 
 ## Common Tasks
 

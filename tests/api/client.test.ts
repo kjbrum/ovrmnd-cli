@@ -159,6 +159,12 @@ describe('HTTP Client', () => {
           ErrorCode.API_REQUEST_FAILED,
         )
         expect((error as OvrmndError).statusCode).toBe(404)
+        // Check error context
+        const ovrmndError = error as OvrmndError
+        expect(ovrmndError.context).toBeDefined()
+        expect(ovrmndError.context?.request).toBeDefined()
+        expect(ovrmndError.context?.response).toBeDefined()
+        expect(ovrmndError.context?.response?.status).toBe(404)
       }
     })
 

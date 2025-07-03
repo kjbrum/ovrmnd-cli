@@ -81,9 +81,9 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
   handler = async (
     args: ArgumentsCamelCase<CallCommandArgs>,
   ): Promise<void> => {
-    try {
-      const formatter = new OutputFormatter(!args.pretty)
+    const formatter = new OutputFormatter(!args.pretty)
 
+    try {
       // Parse target into service and endpoint
       const [service, endpointOrAlias] = args.target.split('.')
       if (!service || !endpointOrAlias) {
@@ -229,7 +229,10 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         process.exit(1)
       }
     } catch (error) {
-      this.handleError(error)
+      // Use the same formatter for errors to ensure consistency
+      const errorOutput = formatter.formatError(error)
+      console.error(errorOutput)
+      process.exit(1)
     }
   }
 

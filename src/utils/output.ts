@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import type { ApiResponse } from '../types'
+import { OvrmndError } from './error'
 
 export class OutputFormatter {
   private jsonMode: boolean
@@ -43,6 +44,50 @@ export class OutputFormatter {
       output += `\n${chalk.gray(JSON.stringify(details, null, 2))}`
     }
     return output
+  }
+
+  formatError(error: unknown): string {
+    if (this.jsonMode) {
+      if (error instanceof OvrmndError) {
+        const jsonError = error.toJsonError()
+        return JSON.stringify(jsonError, null, 2)
+      }
+      return JSON.stringify(
+        {
+          error: {
+            code: 'UNKNOWN_ERROR',
+            message:
+              error instanceof Error ? error.message : String(error),
+          },
+          timestamp: new Date().toISOString(),
+        },
+        null,
+        2,
+      )
+    }
+
+    // Human-readable format
+    if (error instanceof OvrmndError) {
+      let output = chalk.red(`✗ [${error.code}] ${error.message}`)
+
+      if (error.details) {
+        output += `\n${chalk.gray('Details:')} ${JSON.stringify(error.details, null, 2)}`
+      }
+
+      if (error.help) {
+        output += `\n${chalk.yellow('Help:')} ${error.help}`
+      }
+
+      if (error.statusCode) {
+        output += `\n${chalk.gray('Status Code:')} ${error.statusCode}`
+      }
+
+      return output
+    }
+
+    return this.error(
+      error instanceof Error ? error.message : String(error),
+    )
   }
 
   success(message: string): string {

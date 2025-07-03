@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import { createLogger } from './logger'
+import type { ErrorContext, JsonError } from '../types'
 
 const logger = createLogger('error-handler')
 
@@ -54,6 +55,7 @@ export interface ErrorOptions {
   details?: unknown
   help?: string
   statusCode?: number
+  context?: ErrorContext
 }
 
 export class OvrmndError extends Error {
@@ -61,6 +63,7 @@ export class OvrmndError extends Error {
   details: unknown
   help: string | undefined
   statusCode: number | undefined
+  context: ErrorContext | undefined
 
   constructor(options: ErrorOptions) {
     super(options.message)
@@ -69,46 +72,125 @@ export class OvrmndError extends Error {
     this.details = options.details
     this.help = options.help
     this.statusCode = options.statusCode
+    this.context = options.context
+  }
+
+  toJsonError(): JsonError {
+    const error: JsonError['error'] = {
+      code: this.code,
+      message: this.message,
+    }
+
+    if (this.details !== undefined) {
+      error.details = this.details
+    }
+
+    if (this.help !== undefined) {
+      error.help = this.help
+    }
+
+    const jsonError: JsonError = {
+      error,
+      timestamp: new Date().toISOString(),
+    }
+
+    if (this.context?.request) {
+      jsonError.request = this.context.request
+    }
+
+    if (this.context?.response) {
+      jsonError.response = this.context.response
+    }
+
+    return jsonError
   }
 }
 
-export function handleError(error: unknown): void {
-  if (error instanceof OvrmndError) {
-    // Handle our custom errors
-    console.error(chalk.red(`Error: ${error.message}`))
+export function handleError(
+  error: unknown,
+  jsonMode: boolean = false,
+): void {
+  if (jsonMode) {
+    // In JSON mode, output structured error to stderr
+    let errorOutput: JsonError
 
-    if (error.details) {
-      console.error(chalk.gray('Details:'), error.details)
+    if (error instanceof OvrmndError) {
+      errorOutput = error.toJsonError()
+    } else if (error instanceof Error) {
+      errorOutput = {
+        error: {
+          code: 'UNKNOWN_ERROR',
+          message: error.message,
+        },
+        timestamp: new Date().toISOString(),
+      }
+    } else {
+      errorOutput = {
+        error: {
+          code: 'UNKNOWN_ERROR',
+          message: String(error),
+        },
+        timestamp: new Date().toISOString(),
+      }
     }
 
-    if (error.help) {
-      console.error(chalk.yellow('Help:'), error.help)
+    console.error(JSON.stringify(errorOutput, null, 2))
+
+    // Still log for debugging
+    if (error instanceof OvrmndError) {
+      logger.error('OvrmndError', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        statusCode: error.statusCode,
+      })
+    } else if (error instanceof Error) {
+      logger.error('Unhandled error', {
+        message: error.message,
+        stack: error.stack,
+      })
+    } else {
+      logger.error('Unknown error type', { error })
     }
-
-    logger.error('OvrmndError', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      statusCode: error.statusCode,
-    })
-  } else if (error instanceof Error) {
-    // Handle standard errors
-    console.error(chalk.red(`Error: ${error.message}`))
-
-    if (process.env['DEBUG'] === 'true' && error.stack) {
-      console.error(chalk.gray(error.stack))
-    }
-
-    logger.error('Unhandled error', {
-      message: error.message,
-      stack: error.stack,
-    })
   } else {
-    // Handle unknown error types
-    console.error(chalk.red('An unknown error occurred'))
-    console.error(error)
+    // Human-readable error output
+    if (error instanceof OvrmndError) {
+      // Handle our custom errors
+      console.error(chalk.red(`Error: ${error.message}`))
 
-    logger.error('Unknown error type', { error })
+      if (error.details) {
+        console.error(chalk.gray('Details:'), error.details)
+      }
+
+      if (error.help) {
+        console.error(chalk.yellow('Help:'), error.help)
+      }
+
+      logger.error('OvrmndError', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        statusCode: error.statusCode,
+      })
+    } else if (error instanceof Error) {
+      // Handle standard errors
+      console.error(chalk.red(`Error: ${error.message}`))
+
+      if (process.env['DEBUG'] === 'true' && error.stack) {
+        console.error(chalk.gray(error.stack))
+      }
+
+      logger.error('Unhandled error', {
+        message: error.message,
+        stack: error.stack,
+      })
+    } else {
+      // Handle unknown error types
+      console.error(chalk.red('An unknown error occurred'))
+      console.error(error)
+
+      logger.error('Unknown error type', { error })
+    }
   }
 }
 

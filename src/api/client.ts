@@ -151,9 +151,20 @@ export async function executeRequest<T = unknown>(
         code: ErrorCode.API_REQUEST_FAILED,
         message: `HTTP ${response.status}: ${response.statusText}`,
         statusCode: response.status,
-        details: {
-          data,
-          headers: responseHeaders,
+        details: data,
+        context: {
+          request: {
+            method,
+            url,
+            headers: redactAuth(headers),
+            body,
+          },
+          response: {
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+            body: data,
+          },
         },
       })
     }
@@ -178,7 +189,14 @@ export async function executeRequest<T = unknown>(
       throw new OvrmndError({
         code: ErrorCode.API_TIMEOUT,
         message: `Request timeout after ${timeout}ms`,
-        details: { url, method },
+        context: {
+          request: {
+            method,
+            url,
+            headers: redactAuth(headers),
+            body,
+          },
+        },
       })
     }
 
@@ -190,7 +208,14 @@ export async function executeRequest<T = unknown>(
       throw new OvrmndError({
         code: ErrorCode.API_REQUEST_FAILED,
         message: `Network error: ${error.message}`,
-        details: { url, method },
+        context: {
+          request: {
+            method,
+            url,
+            headers: redactAuth(headers),
+            body,
+          },
+        },
       })
     }
 
