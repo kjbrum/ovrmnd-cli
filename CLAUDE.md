@@ -8,7 +8,7 @@ Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs
 
 ## Current Status & Important Files
 
-**Project Phase**: Phase 1 Complete - Ready for Phase 2 Implementation
+**Project Phase**: Phase 2 In Progress - Core API Execution (80% complete)
 
 **Key Documentation**:
 - `docs/phases/PROGRESS.md` - **ALWAYS CHECK FIRST** to understand current implementation status
@@ -18,7 +18,7 @@ Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs
 **Update Requirements**:
 - After any work: Update `docs/phases/PROGRESS.md`
 - After structural changes: Update this `CLAUDE.md` file
-- After learnings: Update `LEARNINGS.md`
+- After any work or interactions with the user: Update `LEARNINGS.md` with anything useful for the future
 
 ## Development Commands
 
@@ -52,12 +52,19 @@ ovrmnd [command]        # Run installed CLI
 - Project directory structure
 - Base command class for consistent command implementation
 
+**Already Implemented (Phase 2)**:
+- YAML configuration engine with validation
+- Authentication system (Bearer token, API key)
+- HTTP client with request execution
+- Parameter mapping and routing
+- Call command with dot notation (service.endpoint)
+- Dual-mode output (human-friendly and JSON)
+
 **To Be Implemented**:
 
 1. **CLI Framework** (`src/cli/`)
-   - Command parser using yargs
-   - Command handlers for: call, list, cache, init, validate, test
-   - Global options: --debug, --json, --config
+   - Command handlers for: list, cache, init, validate, test
+   - Global options: --config
 
 2. **Configuration Engine** (`src/config/`)
    - YAML parser and validator
@@ -152,3 +159,62 @@ aliases:                       # Optional: Shortcuts
 - Check `~/.ovrmnd/` for global configs
 - Validate YAML with `ovrmnd validate`
 - Test API calls with `ovrmnd test`
+
+## CLI Testing
+
+**IMPORTANT**: Always test CLI changes with real API calls to ensure functionality works as expected.
+
+### Test Configuration
+
+Use `.ovrmnd/testing.yaml` for all CLI testing. This file should be kept up to date with the latest configuration structure and features.
+
+```bash
+# Basic testing commands
+node dist/cli.js call testing.listUsers           # List all users
+node dist/cli.js call testing.getUser id=1        # Get specific user
+node dist/cli.js call testing.me                  # Test alias
+node dist/cli.js call testing.listUsers --json    # JSON output
+
+# Test error cases
+node dist/cli.js call testing                     # Invalid format
+node dist/cli.js call testing.nonexistent         # Missing endpoint
+
+# Test parameter types
+node dist/cli.js call testing.createUser name="John Doe" email="john@example.com"
+node dist/cli.js call testing.listUsers --query limit=5 page=2
+node dist/cli.js call testing.test --header X-Custom-Header=value
+```
+
+### Updating Test Configuration
+
+When adding new features to the YAML configuration structure, **ALWAYS** update `.ovrmnd/testing.yaml` to include:
+- New authentication types
+- New endpoint configurations
+- New alias patterns
+- Header configurations
+- Default parameters
+- Cache TTL settings
+- Any other new YAML features
+
+This ensures we can test all functionality with real API calls during development.
+
+### Running Comprehensive Tests
+
+Use the `run-tests` command to execute all test suites and manual CLI tests:
+
+```bash
+# Use Claude Code to run all tests
+/run-tests
+```
+
+This command will:
+1. Run all automated test suites
+2. Execute code quality checks (lint, typecheck, format)
+3. Guide through manual CLI testing with testing.yaml
+4. Verify all output formats and error handling
+
+**Always run this command before committing significant changes.**
+
+### Test Maintenance
+
+- **Important**: Ensure the `.claude/commands/run-tests.md` command is kept up to date any time new functionality is added that needs to be tested
