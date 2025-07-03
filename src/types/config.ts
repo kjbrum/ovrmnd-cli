@@ -32,7 +32,7 @@ export interface EndpointConfig {
 export interface AliasConfig {
   name: string
   endpoint: string
-  args: Record<string, unknown>
+  args?: Record<string, unknown> | undefined
 }
 
 /**

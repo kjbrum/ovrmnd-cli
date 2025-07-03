@@ -22,11 +22,10 @@ const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation()
 const mockConsoleError = jest
   .spyOn(console, 'error')
   .mockImplementation()
+// Mock process.exit to prevent actual exit
 const mockProcessExit = jest
   .spyOn(process, 'exit')
-  .mockImplementation(() => {
-    throw new Error('process.exit called')
-  })
+  .mockImplementation(() => undefined as never)
 
 describe('CallCommand', () => {
   const command = new CallCommand()
@@ -65,26 +64,25 @@ describe('CallCommand', () => {
 
   describe('handler', () => {
     it('should handle invalid target format', async () => {
-      await expect(
-        command.handler({
-          _: [],
-          $0: 'ovrmnd',
-          target: 'invalidformat',
-          params: [],
-          pretty: false,
-          debug: false,
-          path: [],
-          query: [],
-          header: [],
-          body: [],
-        }),
-      ).rejects.toThrow('process.exit called')
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'invalidformat',
+        params: [],
+        pretty: false,
+        debug: false,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining(
           "Invalid target format 'invalidformat'",
         ),
       )
+      expect(mockProcessExit).toHaveBeenCalledWith(1)
     })
 
     it('should call an endpoint successfully and output JSON by default', async () => {
@@ -224,49 +222,47 @@ describe('CallCommand', () => {
         }),
       )
 
-      await expect(
-        command.handler({
-          _: [],
-          $0: 'ovrmnd',
-          target: 'nonexistent.test',
-          params: [],
-          pretty: false,
-          debug: false,
-          path: [],
-          query: [],
-          header: [],
-          body: [],
-        }),
-      ).rejects.toThrow('process.exit called')
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'nonexistent.test',
+        params: [],
+        pretty: false,
+        debug: false,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining("Service 'nonexistent' not found"),
       )
+      expect(mockProcessExit).toHaveBeenCalledWith(1)
     })
 
     it('should handle endpoint not found', async () => {
       mockLoadServiceConfig.mockResolvedValue(mockConfig)
 
-      await expect(
-        command.handler({
-          _: [],
-          $0: 'ovrmnd',
-          target: 'testservice.nonexistent',
-          params: [],
-          pretty: false,
-          debug: false,
-          path: [],
-          query: [],
-          header: [],
-          body: [],
-        }),
-      ).rejects.toThrow('process.exit called')
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'testservice.nonexistent',
+        params: [],
+        pretty: false,
+        debug: false,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining(
           "Endpoint or alias 'nonexistent' not found in service 'testservice'",
         ),
       )
+      expect(mockProcessExit).toHaveBeenCalledWith(1)
     })
 
     it('should handle API errors', async () => {
@@ -280,20 +276,18 @@ describe('CallCommand', () => {
         },
       })
 
-      await expect(
-        command.handler({
-          _: [],
-          $0: 'ovrmnd',
-          target: 'testservice.getUser',
-          params: ['id=123'],
-          pretty: true,
-          debug: false,
-          path: [],
-          query: [],
-          header: [],
-          body: [],
-        }),
-      ).rejects.toThrow('process.exit called')
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'testservice.getUser',
+        params: ['id=123'],
+        pretty: true,
+        debug: false,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
 
       expect(mockConsoleLog).toHaveBeenCalledWith(
         expect.stringContaining('Internal server error'),
@@ -327,7 +321,7 @@ describe('CallCommand', () => {
         service: 'testservice',
         endpoint: 'getUser',
         alias: undefined,
-        mappedParams: expect.any(Object),
+        mappedParams: expect.any(Object) as Record<string, unknown>,
       })
     })
   })

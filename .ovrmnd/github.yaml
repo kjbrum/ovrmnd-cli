@@ -33,7 +33,6 @@ endpoints:
 aliases:
   - name: me
     endpoint: getAuthenticatedUser
-    args: {}
   - name: myRepos
     endpoint: listRepos
     args:

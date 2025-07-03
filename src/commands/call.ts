@@ -115,7 +115,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
             message: `Endpoint '${alias.endpoint}' referenced by alias '${endpointOrAlias}' not found`,
           })
         }
-        aliasParams = alias.args
+        aliasParams = alias.args ?? {}
       } else {
         // Look for direct endpoint
         endpoint = config.endpoints.find(

@@ -110,7 +110,9 @@ export function resolveServiceConfig(
   if (config.aliases) {
     resolved.aliases = config.aliases.map(alias => ({
       ...alias,
-      args: resolveEnvVarsInObject(alias.args),
+      args: alias.args
+        ? resolveEnvVarsInObject(alias.args)
+        : undefined,
     }))
   }
 

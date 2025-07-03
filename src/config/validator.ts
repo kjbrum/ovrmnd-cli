@@ -45,7 +45,7 @@ const EndpointConfigSchema = z.object({
 const AliasConfigSchema = z.object({
   name: z.string().min(1, 'Alias name cannot be empty'),
   endpoint: z.string().min(1, 'Endpoint reference cannot be empty'),
-  args: z.record(z.unknown()),
+  args: z.record(z.unknown()).optional(),
 })
 
 /**

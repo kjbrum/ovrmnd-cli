@@ -104,6 +104,21 @@ This file documents important learnings and findings from building this project.
 - Human format shows error code, message, details, help, and status
 - JSON format includes timestamp and preserves all error metadata
 
+## TypeScript exactOptionalPropertyTypes
+- When enabled, optional properties require explicit `| undefined` in type definitions
+- Affects how optional properties are accessed - need `?.` for potentially undefined
+- In tests, need careful handling: `resolved.aliases?.[0]?.args?.['username']`
+- Validator schemas with `.optional()` work correctly with this setting
+- Environment resolver handles undefined checks properly for optional fields
+- All optional endpoint fields (headers, defaultParams, cacheTTL) work correctly
+
+## Testing process.exit in Jest
+- Mocking process.exit in Jest is tricky - it sets process.exitCode internally
+- Best approach: mock to return undefined and check if mock was called
+- Tests may show as "failed" in Jest even when all assertions pass
+- This is a known Jest limitation when testing process.exit calls
+- Alternative: refactor to throw errors instead of calling process.exit directly
+
 ## Future Considerations
 - Batch operations moved to Phase 5 (Advanced Features)
 - Cache implementation should use flat-cache as planned

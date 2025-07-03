@@ -125,7 +125,9 @@ describe('Environment Variable Resolver', () => {
       }
 
       const resolved = resolveServiceConfig(config)
-      expect(resolved.aliases?.[0]?.args['username']).toBe('testuser')
+      expect(resolved.aliases?.[0]?.args?.['username']).toBe(
+        'testuser',
+      )
     })
   })
 
