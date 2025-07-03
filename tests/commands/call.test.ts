@@ -71,7 +71,7 @@ describe('CallCommand', () => {
           $0: 'ovrmnd',
           target: 'invalidformat',
           params: [],
-          json: false,
+          pretty: false,
           debug: false,
           path: [],
           query: [],
@@ -87,7 +87,7 @@ describe('CallCommand', () => {
       )
     })
 
-    it('should call an endpoint successfully', async () => {
+    it('should call an endpoint successfully and output JSON by default', async () => {
       mockLoadServiceConfig.mockResolvedValue(mockConfig)
       mockCallEndpoint.mockResolvedValue({
         success: true,
@@ -99,7 +99,7 @@ describe('CallCommand', () => {
         $0: 'ovrmnd',
         target: 'testservice.getUser',
         params: ['id=123'],
-        json: false,
+        pretty: false,
         debug: false,
         path: [],
         query: [],
@@ -119,10 +119,12 @@ describe('CallCommand', () => {
           body: undefined,
         },
       )
-      expect(mockConsoleLog).toHaveBeenCalled()
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        JSON.stringify({ id: 123, name: 'Test User' }, null, 2),
+      )
     })
 
-    it('should handle JSON output mode', async () => {
+    it('should handle pretty output mode', async () => {
       mockLoadServiceConfig.mockResolvedValue(mockConfig)
       mockCallEndpoint.mockResolvedValue({
         success: true,
@@ -134,7 +136,7 @@ describe('CallCommand', () => {
         $0: 'ovrmnd',
         target: 'testservice.getUser',
         params: ['id=123'],
-        json: true,
+        pretty: true,
         debug: false,
         path: [],
         query: [],
@@ -142,9 +144,12 @@ describe('CallCommand', () => {
         body: [],
       })
 
-      expect(mockConsoleLog).toHaveBeenCalledWith(
+      // In pretty mode, it should not output raw JSON
+      expect(mockConsoleLog).not.toHaveBeenCalledWith(
         JSON.stringify({ id: 123, name: 'Test User' }, null, 2),
       )
+      // But should still output something
+      expect(mockConsoleLog).toHaveBeenCalled()
     })
 
     it('should handle aliases', async () => {
@@ -159,7 +164,7 @@ describe('CallCommand', () => {
         $0: 'ovrmnd',
         target: 'testservice.me',
         params: [],
-        json: false,
+        pretty: true,
         debug: false,
         path: [],
         query: [],
@@ -190,7 +195,7 @@ describe('CallCommand', () => {
         $0: 'ovrmnd',
         target: 'testservice.createUser',
         params: [],
-        json: false,
+        pretty: true,
         debug: false,
         path: [],
         query: ['limit=10'],
@@ -225,7 +230,7 @@ describe('CallCommand', () => {
           $0: 'ovrmnd',
           target: 'nonexistent.test',
           params: [],
-          json: false,
+          pretty: false,
           debug: false,
           path: [],
           query: [],
@@ -248,7 +253,7 @@ describe('CallCommand', () => {
           $0: 'ovrmnd',
           target: 'testservice.nonexistent',
           params: [],
-          json: false,
+          pretty: false,
           debug: false,
           path: [],
           query: [],
@@ -281,7 +286,7 @@ describe('CallCommand', () => {
           $0: 'ovrmnd',
           target: 'testservice.getUser',
           params: ['id=123'],
-          json: false,
+          pretty: true,
           debug: false,
           path: [],
           query: [],
@@ -310,7 +315,7 @@ describe('CallCommand', () => {
         $0: 'ovrmnd',
         target: 'testservice.getUser',
         params: ['id=123'],
-        json: false,
+        pretty: true,
         debug: true,
         path: [],
         query: [],

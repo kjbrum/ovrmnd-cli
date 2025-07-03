@@ -81,9 +81,23 @@ This file documents important learnings and findings from building this project.
 - Verify parameter mapping and transformations
 - Test invalid target format validation
 
+## Output Format Decision
+- Switched from human-readable default to JSON default
+- JSON output better aligns with tool's purpose (LLM bridge)
+- `--pretty` flag provides human-readable format when needed
+- This follows patterns like AWS CLI rather than GitHub CLI
+- Makes piping and scripting easier by default
+
+## stdout/stderr Separation
+- All logger output (debug, info, warn, error) goes to stderr
+- API response data goes to stdout
+- Winston configured with `stderrLevels` for all log levels
+- Enables clean piping: `ovrmnd call api.users | jq .`
+- CLI errors use console.error (stderr) while data uses process.stdout.write
+
 ## Future Considerations
-- Batch operations could use Promise.all with concurrency limit
+- Batch operations moved to Phase 5 (Advanced Features)
 - Cache implementation should use flat-cache as planned
-- Output formatting needs clear stdout/stderr separation
 - Error schema for JSON mode should include request details
 - Consider supporting multiple targets: `ovrmnd call github.listRepos api.users`
+- Could add config option to set default output format preference

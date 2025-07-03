@@ -65,8 +65,8 @@ node dist/cli.js call testing.getUser id=1
 # Use alias
 node dist/cli.js call testing.me
 
-# JSON output mode
-node dist/cli.js call testing.listUsers --json
+# Pretty output mode (human-readable)
+node dist/cli.js call testing.listUsers --pretty
 ```
 
 ### 3.2 Parameter Types
@@ -104,19 +104,24 @@ node dist/cli.js call invalid.endpoint
 
 ## 4. **Verify Output Formats**
 
-### 4.1 Human-Friendly Output
+### 4.1 JSON Output (Default)
+```bash
+# Verify clean JSON output (no debug logs)
+node dist/cli.js call testing.me | jq .
+
+# Verify error format in JSON mode
+node dist/cli.js call testing.nonexistent 2>&1 | jq .
+```
+
+### 4.2 Human-Friendly Output (--pretty flag)
 - Tables for arrays
-- Colored output (errors in red, success in green)
+- Colored output (errors in red, success in green)  
 - Nested object formatting
 - Clear error messages with help text
 
-### 4.2 JSON Output
 ```bash
-# Verify clean JSON output (no debug logs)
-node dist/cli.js call testing.me --json | jq .
-
-# Verify error format in JSON mode
-node dist/cli.js call testing.nonexistent --json 2>&1 | jq .
+# Verify pretty output
+node dist/cli.js call testing.listUsers --pretty
 ```
 
 ## 5. **Debug Mode Testing**

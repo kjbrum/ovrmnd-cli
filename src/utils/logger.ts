@@ -67,10 +67,19 @@ const logger = winston.createLogger({
     (process.env['NODE_ENV'] === 'production' ? 'info' : 'debug'),
   levels: LOG_LEVELS,
   transports: [
-    // Console transport
+    // Console transport - use stderr to keep stdout clean for data output
     new winston.transports.Console({
       format: consoleFormat,
       silent: process.env['NODE_ENV'] === 'test',
+      stderrLevels: [
+        'error',
+        'warn',
+        'info',
+        'http',
+        'verbose',
+        'debug',
+        'silly',
+      ],
     }),
   ],
 })

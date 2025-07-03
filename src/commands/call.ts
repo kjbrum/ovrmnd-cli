@@ -10,7 +10,7 @@ import type { ParamHints, RawParams } from '../api/params'
 
 interface CallCommandArgs {
   target: string
-  json?: boolean
+  pretty?: boolean
   debug?: boolean
   config?: string
   _: (string | number)[]
@@ -33,8 +33,8 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         type: 'string',
         array: true,
       })
-      .option('json', {
-        describe: 'Output in JSON format',
+      .option('pretty', {
+        describe: 'Output in human-readable format',
         type: 'boolean',
         default: false,
       })
@@ -73,8 +73,8 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         'Get a specific repository',
       )
       .example(
-        '$0 call api.users --query limit=10 --json',
-        'Get users with query parameter in JSON format',
+        '$0 call api.users --query limit=10 --pretty',
+        'Get users with query parameter in human-readable format',
       ) as Argv<CallCommandArgs>
   }
 
@@ -82,7 +82,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
     args: ArgumentsCamelCase<CallCommandArgs>,
   ): Promise<void> => {
     try {
-      const formatter = new OutputFormatter(args.json)
+      const formatter = new OutputFormatter(!args.pretty)
 
       // Parse target into service and endpoint
       const [service, endpointOrAlias] = args.target.split('.')

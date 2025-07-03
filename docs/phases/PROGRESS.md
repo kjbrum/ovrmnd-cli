@@ -15,7 +15,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase | Status | Progress | Start Date | Completion Date |
 |-------|--------|----------|------------|-----------------|
 | Phase 1: Project Scaffolding | 🟢 Completed | 100% | 2025-07-02 | 2025-07-02 |
-| Phase 2: Core API Execution | 🟡 In Progress | 80% | 2025-07-02 | - |
+| Phase 2: Core API Execution | 🟡 In Progress | 87% | 2025-07-02 | - |
 | Phase 3: CLI Usability & DX | 🔴 Not Started | 0% | - | - |
 | Phase 4: Performance & Optimization | 🔴 Not Started | 0% | - | - |
 | Phase 5: Advanced Features | 🔴 Not Started | 0% | - | - |
@@ -85,13 +85,12 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [x] Command handler implementation
   - [x] Command registration with yargs
   - [x] Comprehensive tests
-  - [ ] Batch operations
 
 - [x] **T-05: Dual-Mode Output**
   - [x] Human-friendly output
   - [x] JSON output mode
   - [x] Output formatting
-  - [ ] stdout/stderr separation
+  - [x] stdout/stderr separation
 
 - [ ] **T-06: Standardized Error Output**
   - [ ] Error schema definition
@@ -167,13 +166,19 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [ ] Example endpoints
   - [ ] .gitignore generation
 
+- [ ] **T-04: Batch Operations**
+  - [ ] Multiple API calls in single command
+  - [ ] Parallel execution
+  - [ ] Result aggregation
+  - [ ] Error handling for partial failures
+
 ---
 
 ## Current Focus
 
 **Phase**: 2 (In Progress)
-**Task**: T-01, T-02, T-03, T-04, T-05 mostly complete (19/24 tasks complete)
-**Status**: Core API execution MVP is complete! Users can now call APIs using YAML configurations. Configuration system, authentication, HTTP client, parameter mapping, call command, and output formatting all implemented.
+**Task**: T-01, T-02, T-03, T-04, T-05 complete (20/23 tasks complete)
+**Status**: Core API execution MVP is complete! Users can now call APIs using YAML configurations. Configuration system, authentication, HTTP client, parameter mapping, call command, and output formatting all implemented. stdout/stderr separation ensures clean output for piping and scripting. Batch operations moved to Phase 5 (Advanced Features).
 
 ---
 
@@ -190,6 +195,8 @@ None currently identified.
 - Implemented Zod for comprehensive schema validation
 - Created type-safe configuration system with strict TypeScript
 - Separated concerns: parsing, discovery, merging, validation, env resolution
+- All logger output (debug, info, warn, error) goes to stderr to keep stdout clean for data
+- Switched to JSON as default output format (better for LLM consumption), with --pretty flag for human-readable output
 
 ### Technical Debt:
 - ESLint disable comment in env-resolver.ts for array type casting
@@ -201,10 +208,10 @@ None currently identified.
 
 ## Next Steps
 
-1. Handle batch operations for multiple API calls
-2. Ensure clean separation of stdout/stderr
-3. Define error schema for JSON mode
-4. Implement error transformation and handling
+1. Ensure clean separation of stdout/stderr
+2. Define error schema for JSON mode
+3. Implement error transformation and handling
+4. Preserve HTTP status codes and details
 
 ---
 
@@ -231,7 +238,7 @@ None currently identified.
   - Core utilities implemented (error handling, logging, config)
   - Project directory structure created
   - Base command pattern established
-- Phase 2 progress (65% complete):
+- Phase 2 progress (87% complete):
   - YAML configuration engine implemented (T-01):
     - YAML parsing with js-yaml
     - Config discovery for global (~/.ovrmnd/) and local (./.ovrmnd/) directories
@@ -253,6 +260,8 @@ None currently identified.
     - Human-friendly formatter with tables and colors
     - JSON mode for LLM consumption
     - Error formatting in both modes
+    - Clean stdout/stderr separation for piping and scripting
+    - All logs go to stderr, data goes to stdout
   - All tests passing (80+ tests)
   - Linting and type checking clean
   - Authentication system implemented (T-03):

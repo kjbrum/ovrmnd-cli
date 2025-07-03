@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs using declarative YAML configurations. It provides both human-friendly and machine-readable (JSON) output modes.
+Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs using declarative YAML configurations. It outputs JSON by default (optimized for LLM consumption) with an optional --pretty flag for human-readable output.
 
 ## Current Status & Important Files
 
@@ -58,7 +58,7 @@ ovrmnd [command]        # Run installed CLI
 - HTTP client with request execution
 - Parameter mapping and routing
 - Call command with dot notation (service.endpoint)
-- Dual-mode output (human-friendly and JSON)
+- Dual-mode output (JSON by default, --pretty for human-friendly)
 
 **To Be Implemented**:
 
@@ -83,8 +83,8 @@ ovrmnd [command]        # Run installed CLI
    - Persistent storage using flat-cache
 
 5. **Output Formatters** (`src/formatters/`)
-   - Human-readable formatter (default)
-   - JSON formatter for LLM consumption
+   - JSON formatter (default) for LLM consumption
+   - Human-readable formatter (--pretty flag)
    - Debug output with request/response details
 
 ### YAML Configuration Pattern
@@ -170,10 +170,10 @@ Use `.ovrmnd/testing.yaml` for all CLI testing. This file should be kept up to d
 
 ```bash
 # Basic testing commands
-node dist/cli.js call testing.listUsers           # List all users
-node dist/cli.js call testing.getUser id=1        # Get specific user
-node dist/cli.js call testing.me                  # Test alias
-node dist/cli.js call testing.listUsers --json    # JSON output
+node dist/cli.js call testing.listUsers           # List all users (JSON output by default)
+node dist/cli.js call testing.getUser id=1        # Get specific user (JSON output by default)
+node dist/cli.js call testing.me                  # Test alias (JSON output by default)
+node dist/cli.js call testing.listUsers --pretty  # Human-readable output
 
 # Test error cases
 node dist/cli.js call testing                     # Invalid format
