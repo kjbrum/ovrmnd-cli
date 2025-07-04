@@ -1,0 +1,14 @@
+serviceName: syntax-error
+baseUrl: https://api.example.com
+authentication:
+  type: bearer
+  token: ${TOKEN}
+endpoints:
+  - name: getUser
+    method: GET
+  path: /users  # Wrong indentation
+    headers:
+      Accept: application/json
+  - name createPost  # Missing colon
+    method: POST
+    path: /posts

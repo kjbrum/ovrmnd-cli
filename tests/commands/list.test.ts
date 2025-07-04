@@ -10,8 +10,7 @@ describe('ListCommand', () => {
   let mockDiscovery: jest.MockedClass<typeof ConfigDiscovery>
   let mockFormatter: jest.Mocked<OutputFormatter>
   let command: ListCommand
-  let consoleLogSpy: jest.SpyInstance
-  let consoleErrorSpy: jest.SpyInstance
+  let processStderrSpy: jest.SpyInstance
   let processExitSpy: jest.SpyInstance
   let processStdoutSpy: jest.SpyInstance
 
@@ -86,15 +85,13 @@ describe('ListCommand', () => {
       table: jest.fn().mockImplementation(() => 'mocked table'),
     } as any
 
-    OutputFormatter.prototype.constructor = jest
-      .fn()
-      .mockReturnValue(mockFormatter)
-    Object.setPrototypeOf(mockFormatter, OutputFormatter.prototype)
+    ;(OutputFormatter as jest.MockedClass<
+      typeof OutputFormatter
+    >).mockImplementation(() => mockFormatter)
 
     command = new ListCommand()
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    consoleErrorSpy = jest
-      .spyOn(console, 'error')
+    processStderrSpy = jest
+      .spyOn(process.stderr, 'write')
       .mockImplementation()
     processExitSpy = jest
       .spyOn(process, 'exit')
@@ -126,6 +123,7 @@ describe('ListCommand', () => {
     it('should configure yargs correctly', () => {
       const yargs = {
         positional: jest.fn().mockReturnThis(),
+        option: jest.fn().mockReturnThis(),
         check: jest.fn().mockReturnThis(),
       }
 
@@ -143,12 +141,19 @@ describe('ListCommand', () => {
         type: 'string',
       })
 
+      expect(yargs.option).toHaveBeenCalledWith('pretty', {
+        describe: 'Output in human-readable format',
+        type: 'boolean',
+        default: false,
+      })
+
       expect(yargs.check).toHaveBeenCalled()
     })
 
     it('should validate service requirement for endpoints', () => {
       const yargs = {
         positional: jest.fn().mockReturnThis(),
+        option: jest.fn().mockReturnThis(),
         check: jest.fn().mockImplementation(fn => {
           expect(() => fn({ resource: 'endpoints' })).toThrow(
             'Service name is required when listing endpoints',
@@ -163,6 +168,7 @@ describe('ListCommand', () => {
     it('should validate service requirement for aliases', () => {
       const yargs = {
         positional: jest.fn().mockReturnThis(),
+        option: jest.fn().mockReturnThis(),
         check: jest.fn().mockImplementation(fn => {
           expect(() => fn({ resource: 'aliases' })).toThrow(
             'Service name is required when listing aliases',
@@ -196,10 +202,12 @@ describe('ListCommand', () => {
             ['weather', 'https://api.weather.com', 'none', '1', '0'],
           ],
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          '✓ Found 2 configured service(s)\n',
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Found 2 configured service(s)'),
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith('mocked table')
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining('mocked table'),
+        )
       })
 
       it('should list all services in JSON mode', async () => {
@@ -257,11 +265,11 @@ describe('ListCommand', () => {
         expect(mockFormatter.warning).toHaveBeenCalledWith(
           'No services configured',
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          '⚠ No services configured',
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining('No services configured'),
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          '\nTo add a service, create a YAML file in:',
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining('To add a service, create a YAML file in'),
         )
       })
     })
@@ -299,8 +307,10 @@ describe('ListCommand', () => {
             ],
           ],
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          '\nUsage: ovrmnd call github.<endpoint> [params...]',
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'Usage: ovrmnd call github.<endpoint> [params...]',
+          ),
         )
       })
 
@@ -355,7 +365,7 @@ describe('ListCommand', () => {
         )
 
         expect(mockFormatter.formatError).toHaveBeenCalled()
-        expect(consoleErrorSpy).toHaveBeenCalled()
+        expect(processStderrSpy).toHaveBeenCalled()
         expect(processExitSpy).toHaveBeenCalledWith(1)
       })
     })
@@ -378,8 +388,10 @@ describe('ListCommand', () => {
           ['Alias', 'Endpoint', 'Pre-configured Arguments'],
           [['myRepos', 'listRepos', 'username="testuser"']],
         )
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          '\nUsage: ovrmnd call github.<alias> [additional params...]',
+        expect(processStderrSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'Usage: ovrmnd call github.<alias> [additional params...]',
+          ),
         )
       })
 

@@ -8,6 +8,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { CallCommand } from './commands/call'
 import { ListCommand } from './commands/list'
+import { ValidateCommand } from './commands/validate'
 
 const logger = createLogger('cli')
 
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
       )
       .command(new CallCommand())
       .command(new ListCommand())
+      .command(new ValidateCommand())
       .demandCommand(1, 'You need at least one command')
       .recommendCommands()
       .strict()

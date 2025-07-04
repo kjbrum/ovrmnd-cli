@@ -162,3 +162,48 @@ This file documents important learnings and findings from building this project.
 - List command could be enhanced with filtering options (e.g., --filter, --limit)
 - Could add sorting options for list output
 - Validate command will need careful YAML error reporting
+
+## Validate Command Implementation
+
+### Design Approach
+- Created two-layer validation: schema validation (using existing Zod) and semantic validation
+- ConfigValidator class handles all validation logic
+- ValidateCommand is a thin wrapper that handles file discovery and output formatting
+- Support for validating all configs, specific service, or specific file
+
+### YAML Error Handling
+- js-yaml provides line numbers through error.mark.line (0-based, need to add 1)
+- Syntax errors include snippet context showing the problematic line
+- Line numbers crucial for user-friendly error reporting
+
+### Semantic Validation Features
+1. **Authentication checks**: Missing auth config, missing tokens, API key without header
+2. **Path validation**: Duplicate path parameters, invalid path format
+3. **Endpoint validation**: Cache TTL on non-GET, body params on GET, auth headers in endpoints
+4. **Alias validation**: References to non-existent endpoints, missing required parameters
+5. **Name conflicts**: Duplicate names across endpoints and aliases
+6. **Environment variables**: Check if referenced env vars are set
+7. **Base URL validation**: Format checking, trailing slash warning, localhost detection
+
+### Strict Mode
+- Normal mode: errors fail, warnings pass
+- Strict mode (--strict): both errors and warnings fail
+- Useful for CI/CD pipelines to enforce best practices
+
+### Testing Challenges
+- Unit tests for ConfigValidator are complex due to mocking requirements
+- Need to ensure endpoints array exists before calling array methods
+- TypeScript strict mode requires careful null/undefined handling
+- Integration tests work well with real YAML files
+
+### File Discovery Pattern
+- Reused existing discovery logic from ConfigDiscovery
+- Support for --config flag to specify custom directory
+- Validates files in both global (~/.ovrmnd) and local (./.ovrmnd) directories
+- Service filtering can use filename or peek into serviceName field
+
+### Output Formatting
+- Consistent with other commands: JSON by default, --pretty for human-readable
+- Errors show file path, line number, context, and suggestions
+- Summary table shows total files, errors, and warnings
+- Clear exit codes: 0 for success, 1 for validation failure

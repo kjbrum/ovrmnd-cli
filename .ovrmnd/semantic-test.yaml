@@ -1,0 +1,26 @@
+serviceName: semantic-test
+baseUrl: https://api.example.com/
+authentication:
+  type: apikey
+  token: ${API_KEY_NOT_SET}
+endpoints:
+  - name: getUser
+    method: GET
+    path: /users/{userId}
+    defaultParams:
+      userId: 123 # This will be sent as query param but is also in path
+  - name: createUser
+    method: POST
+    path: /users
+  - name: deleteUser
+    method: DELETE
+    path: /users/{id}
+    cacheTTL: 300 # Cache on non-GET endpoint
+aliases:
+  - name: currentUser
+    endpoint: getUser
+    # Missing required path parameter userId
+  - name: createUser # Duplicate name with endpoint
+    endpoint: createUser
+    args:
+      name: Test User

@@ -1,0 +1,30 @@
+# Test file with various validation errors
+serviceName: invalid-test
+# Missing baseUrl
+authentication:
+  type: bearer
+  # Missing token for bearer auth
+endpoints:
+  - name: getUser
+    method: GET
+    path: /users/{id}/{id} # Duplicate path parameter
+    cacheTTL: -5 # Invalid cache TTL
+    headers:
+      Authorization: Bearer test # Auth header should use auth section
+  - name: getUser # Duplicate endpoint name
+    method: POST
+    path: /users
+  - name: createUser
+    method: GET # GET with body params
+    path: /users
+    defaultParams:
+      name: John
+      email: john@example.com
+aliases:
+  - name: getUser # Duplicate name with endpoint
+    endpoint: nonexistent # References non-existent endpoint
+    args:
+      # Missing required path parameter 'id'
+  - name: me
+    endpoint: getUser
+    # Has required path params but doesn't provide them
