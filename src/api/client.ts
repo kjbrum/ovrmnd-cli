@@ -8,6 +8,7 @@ import { OvrmndError, ErrorCode } from '../utils/error'
 import logger from '../utils/logger'
 import { applyAuth, redactAuth } from './auth'
 import type { DebugFormatter } from '../utils/debug'
+import { CacheStorage } from '../cache'
 
 /**
  * API request options
@@ -48,6 +49,11 @@ export interface ApiErrorResponse {
  * Default timeout in milliseconds
  */
 const DEFAULT_TIMEOUT = 30000 // 30 seconds
+
+/**
+ * Cache storage instance
+ */
+const cacheStorage = new CacheStorage()
 
 /**
  * Convert Headers object to plain object
@@ -286,11 +292,53 @@ export async function callEndpoint<T = unknown>(
   // Apply authentication
   const authHeaders = applyAuth(config, headers)
 
-  // Check cache if GET request (placeholder for future implementation)
-  if (endpoint.method === 'GET' && endpoint.cacheTTL && debugFormatter?.isEnabled) {
-    // For now, just log that caching would be checked
-    const cacheKey = `${config.serviceName}.${endpoint.name}:${JSON.stringify(params?.path ?? {})}:${JSON.stringify(params?.query ?? {})}`
-    debugFormatter.formatCacheInfo(endpoint.name, cacheKey, false, endpoint.cacheTTL)
+  // Check cache for GET requests with cacheTTL
+  let cacheKey: string | undefined
+  if (endpoint.method === 'GET' && endpoint.cacheTTL) {
+    cacheKey = cacheStorage.generateKey(
+      config.serviceName,
+      endpoint.name,
+      urlObj.toString(),
+      authHeaders,
+    )
+
+    try {
+      const cachedData = cacheStorage.get<T>(cacheKey)
+      if (cachedData !== null) {
+        // Cache hit
+        if (debugFormatter?.isEnabled) {
+          debugFormatter.formatCacheInfo(
+            endpoint.name,
+            cacheKey,
+            true,
+            endpoint.cacheTTL,
+          )
+        }
+
+        return {
+          success: true,
+          data: cachedData,
+          metadata: {
+            timestamp: Date.now(),
+            statusCode: 200,
+            cached: true,
+          },
+        }
+      } else {
+        // Cache miss
+        if (debugFormatter?.isEnabled) {
+          debugFormatter.formatCacheInfo(
+            endpoint.name,
+            cacheKey,
+            false,
+            endpoint.cacheTTL,
+          )
+        }
+      }
+    } catch (cacheError) {
+      // Log cache error but continue with request
+      logger.warn('Cache read error', cacheError)
+    }
   }
 
   // Execute request
@@ -304,6 +352,25 @@ export async function callEndpoint<T = unknown>(
       },
       debugFormatter,
     )
+
+    // Store successful GET responses in cache
+    if (
+      endpoint.method === 'GET' &&
+      endpoint.cacheTTL &&
+      cacheKey &&
+      httpResponse.status === 200
+    ) {
+      try {
+        cacheStorage.set(
+          cacheKey,
+          httpResponse.data,
+          endpoint.cacheTTL,
+        )
+      } catch (cacheError) {
+        // Log cache error but don't fail the request
+        logger.warn('Cache write error', cacheError)
+      }
+    }
 
     // Transform to standard ApiResponse format
     return {

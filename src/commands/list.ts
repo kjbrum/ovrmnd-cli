@@ -77,14 +77,14 @@ export class ListCommand extends BaseCommand<ListArgs> {
 
       const configDir = args.config
       const discovery = new ConfigDiscovery()
-      
+
       // Debug config loading
       if (debugFormatter.isEnabled) {
         debugFormatter.debug('CONFIG', 'Loading configurations', {
           configDir: configDir ?? 'default (~/.ovrmnd and ./.ovrmnd)',
         })
       }
-      
+
       const configs = await discovery.loadAll(configDir)
 
       const resource = args.resource as ListResource

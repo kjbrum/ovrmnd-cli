@@ -195,7 +195,9 @@ endpoints:
       )
 
       expect(code).toBe(1)
-      expect(stderr).toContain('Service name is required when listing')
+      expect(stderr).toContain(
+        'Service name is required when listing',
+      )
     })
   })
 
@@ -292,7 +294,9 @@ endpoints:
       )
 
       expect(code).toBe(1)
-      expect(stderr).toContain('Service name is required when listing')
+      expect(stderr).toContain(
+        'Service name is required when listing',
+      )
     })
 
     it('should require service for aliases', async () => {
@@ -301,7 +305,9 @@ endpoints:
       )
 
       expect(code).toBe(1)
-      expect(stderr).toContain('Service name is required when listing')
+      expect(stderr).toContain(
+        'Service name is required when listing',
+      )
     })
   })
 })

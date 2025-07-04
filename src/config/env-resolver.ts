@@ -57,7 +57,9 @@ export function resolveEnvVarsInObject<T>(
 
   if (Array.isArray(obj)) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-    return obj.map(item => resolveEnvVarsInObject(item, debugFormatter)) as any
+    return obj.map(item =>
+      resolveEnvVarsInObject(item, debugFormatter),
+    ) as any
   }
 
   if (obj !== null && typeof obj === 'object') {
@@ -99,7 +101,10 @@ export function resolveServiceConfig(
 
   // Resolve authentication if present
   if (config.authentication) {
-    resolved.authentication = resolveAuthConfig(config.authentication, debugFormatter)
+    resolved.authentication = resolveAuthConfig(
+      config.authentication,
+      debugFormatter,
+    )
   }
 
   // Resolve environment variables in endpoints

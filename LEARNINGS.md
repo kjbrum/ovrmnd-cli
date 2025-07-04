@@ -250,3 +250,59 @@ Debug output testing uses process.stderr.write mocking to capture and verify out
 - ESLint prefers `import type` for type-only imports to optimize bundle size
 - Cannot use `import()` syntax for inline type imports with consistent-type-imports rule
 - All type imports should be at the top of the file using `import type`
+
+## Response Caching Implementation
+
+### Design Decisions
+
+1. **flat-cache Library**: Used flat-cache for persistent file-based caching. It's simple, reliable, and handles JSON serialization automatically.
+
+2. **Cache Key Generation**: 
+   - Uses SHA256 hash of service name, endpoint name, URL, and non-sensitive headers
+   - Auth headers (Authorization, X-API-Key, Cookie) are excluded from cache key
+   - Headers are normalized to lowercase and sorted for consistent hashing
+   - Key format: `service.endpoint.hash16chars`
+
+3. **TTL Implementation**:
+   - Each cache entry stores data, timestamp, and TTL value
+   - Expiration checked on read - expired entries are removed automatically
+   - TTL specified in seconds in YAML config per endpoint
+
+4. **Cache Storage Location**: `~/.ovrmnd/cache/` directory with flat-cache handling file management
+
+5. **Graceful Degradation**: Cache errors don't fail API requests - they're logged but the request continues
+
+### Integration Pattern
+
+```typescript
+// Check cache before request
+const cachedData = cacheStorage.get(cacheKey)
+if (cachedData !== null) {
+  return { success: true, data: cachedData, metadata: { cached: true } }
+}
+
+// Store successful responses
+if (response.status === 200) {
+  cacheStorage.set(cacheKey, response.data, endpoint.cacheTTL)
+}
+```
+
+### Testing Challenges
+
+1. **Mock vs Real Cache**: Integration tests mock flat-cache to control cache behavior precisely
+2. **Header Order**: Headers object property order affected cache key generation - solved by sorting
+3. **Case Sensitivity**: Headers can have varying case - normalized to lowercase for consistency
+
+### Security Considerations
+
+- Authentication headers excluded from cache keys to prevent auth token leakage
+- Different auth tokens get same cached response for same endpoint/params
+- Sensitive headers list: authorization, x-api-key, cookie
+
+### Future Enhancements
+
+- Cache statistics command to view cache usage
+- Cache clear command with service/endpoint filtering
+- Consider memory cache layer for hot data
+- Add cache size limits and eviction policies
+- Support for ETags and conditional requests

@@ -81,9 +81,13 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
       if (args.file) {
         // Validate a specific file
         if (debugFormatter.isEnabled) {
-          debugFormatter.debug('VALIDATE', 'Validating specific file', {
-            file: args.file,
-          })
+          debugFormatter.debug(
+            'VALIDATE',
+            'Validating specific file',
+            {
+              file: args.file,
+            },
+          )
         }
         const result = await validator.validateFile(args.file)
         results = [result]

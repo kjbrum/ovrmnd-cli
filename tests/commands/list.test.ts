@@ -84,10 +84,9 @@ describe('ListCommand', () => {
       warning: jest.fn().mockImplementation(msg => `⚠ ${msg}`),
       table: jest.fn().mockImplementation(() => 'mocked table'),
     } as any
-
-    ;(OutputFormatter as jest.MockedClass<
-      typeof OutputFormatter
-    >).mockImplementation(() => mockFormatter)
+    ;(
+      OutputFormatter as jest.MockedClass<typeof OutputFormatter>
+    ).mockImplementation(() => mockFormatter)
 
     command = new ListCommand()
     processStderrSpy = jest
@@ -269,7 +268,9 @@ describe('ListCommand', () => {
           expect.stringContaining('No services configured'),
         )
         expect(processStderrSpy).toHaveBeenCalledWith(
-          expect.stringContaining('To add a service, create a YAML file in'),
+          expect.stringContaining(
+            'To add a service, create a YAML file in',
+          ),
         )
       })
     })

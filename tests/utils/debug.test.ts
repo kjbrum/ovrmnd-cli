@@ -145,7 +145,11 @@ describe('DebugFormatter', () => {
   describe('formatConfigResolution', () => {
     it('should not output when disabled', () => {
       const formatter = new DebugFormatter(false)
-      formatter.formatConfigResolution('test', '/path/to/config', true)
+      formatter.formatConfigResolution(
+        'test',
+        '/path/to/config',
+        true,
+      )
       expect(processStderrSpy).not.toHaveBeenCalled()
     })
 
@@ -161,7 +165,9 @@ describe('DebugFormatter', () => {
       const output = calls.map(call => call[0]).join('')
 
       expect(output).toContain('[CONFIG]')
-      expect(output).toContain("Loading service 'github' from global config")
+      expect(output).toContain(
+        "Loading service 'github' from global config",
+      )
       expect(output).toContain('/home/user/.ovrmnd/github.yaml')
     })
 
@@ -177,7 +183,9 @@ describe('DebugFormatter', () => {
       const output = calls.map(call => call[0]).join('')
 
       expect(output).toContain('[CONFIG]')
-      expect(output).toContain("Loading service 'api' from local config")
+      expect(output).toContain(
+        "Loading service 'api' from local config",
+      )
       expect(output).toContain('/project/.ovrmnd/api.yaml')
     })
   })
@@ -204,7 +212,9 @@ describe('DebugFormatter', () => {
       const output = calls.map(call => call[0]).join('')
 
       expect(output).toContain('[PARAMS]')
-      expect(output).toContain("Mapping parameters for endpoint 'getUser'")
+      expect(output).toContain(
+        "Mapping parameters for endpoint 'getUser'",
+      )
       expect(output).toContain('Raw parameters:')
       expect(output).toContain('"id": "123"')
       expect(output).toContain('Mapped parameters:')

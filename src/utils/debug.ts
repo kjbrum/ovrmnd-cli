@@ -52,7 +52,8 @@ export class DebugFormatter {
     if (headers && Object.keys(headers).length > 0) {
       const redactedHeaders = redactAuth(headers)
       process.stderr.write(
-        chalk.gray('  Headers:\n') + this.formatObject(redactedHeaders, 4),
+        chalk.gray('  Headers:\n') +
+          this.formatObject(redactedHeaders, 4),
       )
     }
 
@@ -74,7 +75,8 @@ export class DebugFormatter {
   ): void {
     if (!this.enabled) return
 
-    const statusColor = status >= 200 && status < 300 ? chalk.green : chalk.red
+    const statusColor =
+      status >= 200 && status < 300 ? chalk.green : chalk.red
     this.debug('RESPONSE', statusColor(`${status} ${statusText}`))
 
     if (headers && Object.keys(headers).length > 0) {
@@ -131,27 +133,38 @@ export class DebugFormatter {
   ): void {
     if (!this.enabled) return
 
-    this.debug('PARAMS', `Mapping parameters for endpoint '${endpoint}'`)
+    this.debug(
+      'PARAMS',
+      `Mapping parameters for endpoint '${endpoint}'`,
+    )
 
     if (Object.keys(rawParams).length > 0) {
       process.stderr.write(
-        chalk.gray('  Raw parameters:\n') + this.formatObject(rawParams, 4),
+        chalk.gray('  Raw parameters:\n') +
+          this.formatObject(rawParams, 4),
       )
     }
 
     process.stderr.write(
-      chalk.gray('  Mapped parameters:\n') + this.formatObject(mappedParams, 4),
+      chalk.gray('  Mapped parameters:\n') +
+        this.formatObject(mappedParams, 4),
     )
   }
 
   /**
    * Format environment variable resolution
    */
-  formatEnvResolution(varName: string, resolved: boolean, value?: string): void {
+  formatEnvResolution(
+    varName: string,
+    resolved: boolean,
+    value?: string,
+  ): void {
     if (!this.enabled) return
 
     if (resolved) {
-      const maskedValue = value ? '*'.repeat(Math.min(value.length, 8)) : ''
+      const maskedValue = value
+        ? '*'.repeat(Math.min(value.length, 8))
+        : ''
       this.debug('ENV', `Resolved ${varName} = ${maskedValue}`)
     } else {
       this.debug('ENV', `Warning: ${varName} is not set`)
@@ -191,7 +204,10 @@ export class DebugFormatter {
     }
 
     if (typeof data === 'object') {
-      return this.formatObject(data as Record<string, unknown>, indent)
+      return this.formatObject(
+        data as Record<string, unknown>,
+        indent,
+      )
     }
 
     return chalk.gray(`${' '.repeat(indent)}${String(data)}\n`)
@@ -211,7 +227,9 @@ export class DebugFormatter {
         .map(line => `${' '.repeat(indent)}${chalk.gray(line)}`)
         .join('\n')}\n`
     } catch {
-      return chalk.gray(`${' '.repeat(indent)}[Circular or non-serializable object]\n`)
+      return chalk.gray(
+        `${' '.repeat(indent)}[Circular or non-serializable object]\n`,
+      )
     }
   }
 }
