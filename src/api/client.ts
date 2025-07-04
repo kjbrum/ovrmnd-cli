@@ -7,6 +7,7 @@ import type { ApiResponse as StandardApiResponse } from '../types'
 import { OvrmndError, ErrorCode } from '../utils/error'
 import logger from '../utils/logger'
 import { applyAuth, redactAuth } from './auth'
+import type { DebugFormatter } from '../utils/debug'
 
 /**
  * API request options
@@ -94,6 +95,7 @@ export function buildUrl(
  */
 export async function executeRequest<T = unknown>(
   options: RequestOptions,
+  debugFormatter?: DebugFormatter,
 ): Promise<HttpResponse<T>> {
   const {
     method,
@@ -108,10 +110,15 @@ export async function executeRequest<T = unknown>(
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   try {
-    logger.debug(`${method} ${url}`, {
-      headers: redactAuth(headers),
-      hasBody: body !== undefined,
-    })
+    // Use debug formatter if provided, otherwise fall back to logger
+    if (debugFormatter?.isEnabled) {
+      debugFormatter.formatRequest(method, url, headers, body)
+    } else {
+      logger.debug(`${method} ${url}`, {
+        headers: redactAuth(headers),
+        hasBody: body !== undefined,
+      })
+    }
 
     const requestInit: RequestInit = {
       method,
@@ -169,9 +176,19 @@ export async function executeRequest<T = unknown>(
       })
     }
 
-    logger.debug(`Response ${response.status}`, {
-      hasData: data !== undefined,
-    })
+    // Log response with debug formatter
+    if (debugFormatter?.isEnabled) {
+      debugFormatter.formatResponse(
+        response.status,
+        response.statusText,
+        responseHeaders,
+        data,
+      )
+    } else {
+      logger.debug(`Response ${response.status}`, {
+        hasData: data !== undefined,
+      })
+    }
 
     return {
       data,
@@ -243,6 +260,7 @@ export async function callEndpoint<T = unknown>(
     body?: unknown
     headers?: Record<string, string>
   },
+  debugFormatter?: DebugFormatter,
 ): Promise<StandardApiResponse> {
   // Build URL
   const url = buildUrl(config.baseUrl, endpoint.path, params?.path)
@@ -268,14 +286,24 @@ export async function callEndpoint<T = unknown>(
   // Apply authentication
   const authHeaders = applyAuth(config, headers)
 
+  // Check cache if GET request (placeholder for future implementation)
+  if (endpoint.method === 'GET' && endpoint.cacheTTL && debugFormatter?.isEnabled) {
+    // For now, just log that caching would be checked
+    const cacheKey = `${config.serviceName}.${endpoint.name}:${JSON.stringify(params?.path ?? {})}:${JSON.stringify(params?.query ?? {})}`
+    debugFormatter.formatCacheInfo(endpoint.name, cacheKey, false, endpoint.cacheTTL)
+  }
+
   // Execute request
   try {
-    const httpResponse = await executeRequest<T>({
-      method: endpoint.method,
-      url: urlObj.toString(),
-      headers: authHeaders,
-      body: params?.body,
-    })
+    const httpResponse = await executeRequest<T>(
+      {
+        method: endpoint.method,
+        url: urlObj.toString(),
+        headers: authHeaders,
+        body: params?.body,
+      },
+      debugFormatter,
+    )
 
     // Transform to standard ApiResponse format
     return {

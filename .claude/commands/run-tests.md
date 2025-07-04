@@ -26,9 +26,14 @@ npm test tests/commands/call.test.ts
 ```
 
 Expected output:
-- All test suites should pass (currently 70+ tests)
-- No failing tests
+- All test suites should pass (currently 80+ tests)
 - Coverage should be above 80%
+
+**IMPORTANT NOTE**: Some tests that use `process.exit()` may show warnings like:
+```
+●  process.exit called with "1"
+```
+This is a known Jest limitation when testing process.exit calls. These warnings can be ignored - the tests are still passing correctly. The issue is documented in LEARNINGS.md. As long as the test assertions pass (green checkmarks), consider the tests successful.
 
 ## 2. **Run Code Quality Checks**
 

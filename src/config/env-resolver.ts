@@ -7,6 +7,7 @@ import type {
 } from '../types/config'
 import { OvrmndError, ErrorCode } from '../utils/error'
 import logger from '../utils/logger'
+import type { DebugFormatter } from '../utils/debug'
 
 // Load .env file on module load
 dotenv.config()
@@ -19,16 +20,26 @@ const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g
 /**
  * Resolve environment variables in a string
  */
-export function resolveEnvVars(value: string): string {
+export function resolveEnvVars(
+  value: string,
+  debugFormatter?: DebugFormatter,
+): string {
   return value.replace(ENV_VAR_PATTERN, (_match, varName: string) => {
     const envValue = process.env[varName]
     if (envValue === undefined) {
+      if (debugFormatter?.isEnabled) {
+        debugFormatter.formatEnvResolution(varName, false)
+      }
       throw new OvrmndError({
         code: ErrorCode.ENV_VAR_NOT_FOUND,
         message: `Environment variable ${varName} is not defined`,
       })
     }
-    logger.debug(`Resolved environment variable ${varName}`)
+    if (debugFormatter?.isEnabled) {
+      debugFormatter.formatEnvResolution(varName, true, envValue)
+    } else {
+      logger.debug(`Resolved environment variable ${varName}`)
+    }
     return envValue
   })
 }
@@ -36,21 +47,24 @@ export function resolveEnvVars(value: string): string {
 /**
  * Resolve environment variables in an object recursively
  */
-export function resolveEnvVarsInObject<T>(obj: T): T {
+export function resolveEnvVarsInObject<T>(
+  obj: T,
+  debugFormatter?: DebugFormatter,
+): T {
   if (typeof obj === 'string') {
-    return resolveEnvVars(obj) as T
+    return resolveEnvVars(obj, debugFormatter) as T
   }
 
   if (Array.isArray(obj)) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-    return obj.map(item => resolveEnvVarsInObject(item)) as any
+    return obj.map(item => resolveEnvVarsInObject(item, debugFormatter)) as any
   }
 
   if (obj !== null && typeof obj === 'object') {
     const resolved: Record<string, unknown> = {}
     const objRecord = obj as Record<string, unknown>
     for (const [key, value] of Object.entries(objRecord)) {
-      resolved[key] = resolveEnvVarsInObject(value)
+      resolved[key] = resolveEnvVarsInObject(value, debugFormatter)
     }
     return resolved as T
   }
@@ -61,10 +75,13 @@ export function resolveEnvVarsInObject<T>(obj: T): T {
 /**
  * Resolve authentication configuration
  */
-function resolveAuthConfig(auth: AuthConfig): ResolvedAuthConfig {
+function resolveAuthConfig(
+  auth: AuthConfig,
+  debugFormatter?: DebugFormatter,
+): ResolvedAuthConfig {
   return {
     ...auth,
-    token: resolveEnvVars(auth.token),
+    token: resolveEnvVars(auth.token, debugFormatter),
   }
 }
 
@@ -73,33 +90,36 @@ function resolveAuthConfig(auth: AuthConfig): ResolvedAuthConfig {
  */
 export function resolveServiceConfig(
   config: ServiceConfig,
+  debugFormatter?: DebugFormatter,
 ): ResolvedServiceConfig {
   const resolved: ResolvedServiceConfig = {
     ...config,
-    baseUrl: resolveEnvVars(config.baseUrl),
+    baseUrl: resolveEnvVars(config.baseUrl, debugFormatter),
   }
 
   // Resolve authentication if present
   if (config.authentication) {
-    resolved.authentication = resolveAuthConfig(config.authentication)
+    resolved.authentication = resolveAuthConfig(config.authentication, debugFormatter)
   }
 
   // Resolve environment variables in endpoints
   resolved.endpoints = config.endpoints.map(endpoint => {
     const resolvedEndpoint = {
       ...endpoint,
-      path: resolveEnvVars(endpoint.path),
+      path: resolveEnvVars(endpoint.path, debugFormatter),
     }
 
     if (endpoint.headers) {
       resolvedEndpoint.headers = resolveEnvVarsInObject(
         endpoint.headers,
+        debugFormatter,
       )
     }
 
     if (endpoint.defaultParams) {
       resolvedEndpoint.defaultParams = resolveEnvVarsInObject(
         endpoint.defaultParams,
+        debugFormatter,
       )
     }
 
@@ -111,7 +131,7 @@ export function resolveServiceConfig(
     resolved.aliases = config.aliases.map(alias => ({
       ...alias,
       args: alias.args
-        ? resolveEnvVarsInObject(alias.args)
+        ? resolveEnvVarsInObject(alias.args, debugFormatter)
         : undefined,
     }))
   }

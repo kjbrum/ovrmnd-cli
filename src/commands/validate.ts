@@ -3,6 +3,7 @@ import type { Argv, ArgumentsCamelCase } from 'yargs'
 import { ConfigValidator } from '../config/config-validator'
 import { OutputFormatter } from '../utils/output'
 import { OvrmndError, ErrorCode } from '../utils/error'
+import { DebugFormatter } from '../utils/debug'
 import * as path from 'path'
 import * as fs from 'fs/promises'
 import {
@@ -67,6 +68,7 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
     args: ArgumentsCamelCase<ValidateArgs>,
   ): Promise<void> => {
     const formatter = new OutputFormatter(!args.pretty)
+    const debugFormatter = new DebugFormatter(args.debug ?? false)
 
     try {
       const validator = new ConfigValidator({
@@ -78,10 +80,20 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
 
       if (args.file) {
         // Validate a specific file
+        if (debugFormatter.isEnabled) {
+          debugFormatter.debug('VALIDATE', 'Validating specific file', {
+            file: args.file,
+          })
+        }
         const result = await validator.validateFile(args.file)
         results = [result]
       } else {
         // Discover and validate config files
+        if (debugFormatter.isEnabled) {
+          debugFormatter.debug('VALIDATE', 'Discovering YAML files', {
+            configDir: args.config ?? 'default directories',
+          })
+        }
         const files = await this.discoverYamlFiles(args.config)
 
         if (args.service) {

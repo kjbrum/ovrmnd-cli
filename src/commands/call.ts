@@ -5,6 +5,7 @@ import { callEndpoint } from '../api/client'
 import { mapParameters } from '../api/params'
 import { OutputFormatter } from '../utils/output'
 import { OvrmndError, ErrorCode } from '../utils/error'
+import { DebugFormatter } from '../utils/debug'
 import type { EndpointConfig } from '../types/config'
 import type { ParamHints, RawParams } from '../api/params'
 
@@ -82,6 +83,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
     args: ArgumentsCamelCase<CallCommandArgs>,
   ): Promise<void> => {
     const formatter = new OutputFormatter(!args.pretty)
+    const debugFormatter = new DebugFormatter(args.debug ?? false)
 
     try {
       // Parse target into service and endpoint
@@ -95,7 +97,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
       }
 
       // Load configuration
-      const config = await loadServiceConfig(service)
+      const config = await loadServiceConfig(service, debugFormatter)
 
       // Find endpoint or alias
       let endpoint: EndpointConfig | undefined
@@ -205,20 +207,19 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         hints,
       )
 
-      if (args.debug) {
-        this.logger.debug('Calling endpoint', {
-          service,
-          endpoint: endpoint.name,
-          alias: alias?.name,
-          mappedParams,
-        })
-      }
+      // Debug parameter mapping
+      debugFormatter.formatParameterMapping(
+        endpoint.name,
+        mergedParams,
+        mappedParams,
+      )
 
       // Make the API call
       const response = await callEndpoint(
         config,
         endpoint,
         mappedParams,
+        debugFormatter,
       )
 
       // Output the response

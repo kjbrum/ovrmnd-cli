@@ -17,14 +17,17 @@ import type {
   ResolvedServiceConfig,
 } from '../types/config'
 import { OvrmndError, ErrorCode } from '../utils/error'
+import type { DebugFormatter } from '../utils/debug'
 
 /**
  * Load and resolve a service configuration by name
  */
+
 export async function loadServiceConfig(
   serviceName: string,
+  debugFormatter?: DebugFormatter,
 ): Promise<ResolvedServiceConfig> {
-  const config = await findServiceConfig(serviceName)
+  const config = await findServiceConfig(serviceName, debugFormatter)
 
   if (!config) {
     throw new OvrmndError({
@@ -33,7 +36,7 @@ export async function loadServiceConfig(
     })
   }
 
-  return resolveServiceConfig(config)
+  return resolveServiceConfig(config, debugFormatter)
 }
 
 /**

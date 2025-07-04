@@ -312,7 +312,9 @@ describe('CallCommand', () => {
         data: { id: 123 },
       })
 
-      const mockDebug = jest.spyOn(command['logger'], 'debug')
+      const stderrSpy = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation()
 
       await command.handler({
         _: [],
@@ -327,12 +329,26 @@ describe('CallCommand', () => {
         body: [],
       })
 
-      expect(mockDebug).toHaveBeenCalledWith('Calling endpoint', {
-        service: 'testservice',
-        endpoint: 'getUser',
-        alias: undefined,
-        mappedParams: expect.any(Object) as Record<string, unknown>,
-      })
+      // Check that debug formatter was used
+      expect(mockLoadServiceConfig).toHaveBeenCalledWith(
+        'testservice',
+        expect.objectContaining({ isEnabled: true }),
+      )
+      expect(mockCallEndpoint).toHaveBeenCalledWith(
+        mockConfig,
+        mockConfig.endpoints[0],
+        expect.any(Object),
+        expect.objectContaining({ isEnabled: true }),
+      )
+
+      // Verify debug output
+      const stderrOutput = stderrSpy.mock.calls
+        .map(call => call[0])
+        .join('')
+      expect(stderrOutput).toContain('[DEBUG]')
+      expect(stderrOutput).toContain('[PARAMS]')
+
+      stderrSpy.mockRestore()
     })
   })
 

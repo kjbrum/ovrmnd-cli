@@ -4,6 +4,7 @@ import * as os from 'os'
 import type { ConfigFile, ServiceConfig } from '../types/config'
 import { loadYamlConfig } from './yaml-parser'
 import logger from '../utils/logger'
+import type { DebugFormatter } from '../utils/debug'
 
 /**
  * Get the global configuration directory
@@ -87,15 +88,24 @@ export async function discoverConfigs(): Promise<{
  */
 export async function findServiceConfig(
   serviceName: string,
+  debugFormatter?: DebugFormatter,
 ): Promise<ServiceConfig | null> {
   const { global, local } = await discoverConfigs()
 
   // Check local configs first (they take precedence)
   for (const configFile of local) {
     if (configFile.config.serviceName === serviceName) {
-      logger.debug(
-        `Found service ${serviceName} in local config: ${configFile.path}`,
-      )
+      if (debugFormatter?.isEnabled) {
+        debugFormatter.formatConfigResolution(
+          serviceName,
+          configFile.path,
+          false,
+        )
+      } else {
+        logger.debug(
+          `Found service ${serviceName} in local config: ${configFile.path}`,
+        )
+      }
       return configFile.config
     }
   }
@@ -103,9 +113,17 @@ export async function findServiceConfig(
   // Then check global configs
   for (const configFile of global) {
     if (configFile.config.serviceName === serviceName) {
-      logger.debug(
-        `Found service ${serviceName} in global config: ${configFile.path}`,
-      )
+      if (debugFormatter?.isEnabled) {
+        debugFormatter.formatConfigResolution(
+          serviceName,
+          configFile.path,
+          true,
+        )
+      } else {
+        logger.debug(
+          `Found service ${serviceName} in global config: ${configFile.path}`,
+        )
+      }
       return configFile.config
     }
   }

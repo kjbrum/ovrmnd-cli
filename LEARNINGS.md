@@ -207,3 +207,46 @@ This file documents important learnings and findings from building this project.
 - Errors show file path, line number, context, and suggestions
 - Summary table shows total files, errors, and warnings
 - Clear exit codes: 0 for success, 1 for validation failure
+
+## Debug Mode Implementation
+
+### Key Design Decisions
+
+1. **Separate Debug Formatter**: Created a dedicated `DebugFormatter` class instead of using the logger directly. This provides:
+   - Consistent formatting across all debug output
+   - Easy enable/disable through constructor flag
+   - Specialized formatting methods for different types of debug info
+
+2. **stderr vs stdout**: All debug output goes to stderr to keep stdout clean for data output. This allows users to pipe data while still seeing debug info.
+
+3. **Redaction Strategy**: Authentication headers are partially redacted (showing first 4 and last 4 chars) rather than fully hidden, which helps with debugging while maintaining security.
+
+4. **Optional Dependency Injection**: Debug formatter is passed as an optional parameter through the call chain, allowing components to work with or without debug mode.
+
+### Implementation Pattern
+
+```typescript
+// Pass debug formatter through the chain
+const debugFormatter = new DebugFormatter(args.debug ?? false)
+const config = await loadServiceConfig(service, debugFormatter)
+const response = await callEndpoint(config, endpoint, params, debugFormatter)
+```
+
+### Categories of Debug Output
+
+- `CONFIG`: Configuration loading and resolution
+- `REQUEST`: HTTP request details
+- `RESPONSE`: HTTP response details  
+- `PARAMS`: Parameter mapping
+- `ENV`: Environment variable resolution
+- `CACHE`: Cache hit/miss information
+
+### Testing Approach
+
+Debug output testing uses process.stderr.write mocking to capture and verify output without polluting test logs.
+
+### TypeScript Import Considerations
+
+- ESLint prefers `import type` for type-only imports to optimize bundle size
+- Cannot use `import()` syntax for inline type imports with consistent-type-imports rule
+- All type imports should be at the top of the file using `import type`

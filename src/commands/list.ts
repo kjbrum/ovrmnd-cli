@@ -3,6 +3,7 @@ import { BaseCommand } from './base-command'
 import { ConfigDiscovery } from '../config'
 import { OutputFormatter } from '../utils/output'
 import { OvrmndError, ErrorCode } from '../utils/error'
+import { DebugFormatter } from '../utils/debug'
 import type { ServiceConfig } from '../types/config'
 
 interface ListArgs {
@@ -63,6 +64,7 @@ export class ListCommand extends BaseCommand<ListArgs> {
     args: ArgumentsCamelCase<ListArgs>,
   ): Promise<void> => {
     const formatter = new OutputFormatter(!args.pretty)
+    const debugFormatter = new DebugFormatter(args.debug)
 
     try {
       // Validate required args
@@ -75,6 +77,14 @@ export class ListCommand extends BaseCommand<ListArgs> {
 
       const configDir = args.config
       const discovery = new ConfigDiscovery()
+      
+      // Debug config loading
+      if (debugFormatter.isEnabled) {
+        debugFormatter.debug('CONFIG', 'Loading configurations', {
+          configDir: configDir ?? 'default (~/.ovrmnd and ./.ovrmnd)',
+        })
+      }
+      
       const configs = await discovery.loadAll(configDir)
 
       const resource = args.resource as ListResource

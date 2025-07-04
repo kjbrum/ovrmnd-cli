@@ -116,35 +116,31 @@ export class ConfigValidator {
     config: ServiceConfig,
     result: ValidationResult,
   ): void {
-    try {
-      // Check authentication configuration
-      this.validateAuthentication(config, result)
+    // Check authentication configuration
+    this.validateAuthentication(config, result)
 
-      // Check endpoints
-      if (config.endpoints) {
-        config.endpoints.forEach(endpoint => {
-          this.validateEndpoint(endpoint, result)
-        })
-      }
-
-      // Check aliases
-      if (config.aliases && config.endpoints) {
-        this.validateAliases(config.aliases, config.endpoints, result)
-      }
-
-      // Check for duplicate endpoint/alias names
-      this.checkDuplicateNames(config, result)
-
-      // Check for environment variables
-      if (this.options.checkEnvVars) {
-        this.checkEnvironmentVariables(config, result)
-      }
-
-      // Check URL format
-      this.validateBaseUrl(config.baseUrl, result)
-    } catch (error) {
-      throw error
+    // Check endpoints
+    if (config.endpoints) {
+      config.endpoints.forEach(endpoint => {
+        this.validateEndpoint(endpoint, result)
+      })
     }
+
+    // Check aliases
+    if (config.aliases && config.endpoints) {
+      this.validateAliases(config.aliases, config.endpoints, result)
+    }
+
+    // Check for duplicate endpoint/alias names
+    this.checkDuplicateNames(config, result)
+
+    // Check for environment variables
+    if (this.options.checkEnvVars) {
+      this.checkEnvironmentVariables(config, result)
+    }
+
+    // Check URL format
+    this.validateBaseUrl(config.baseUrl, result)
   }
 
   private validateAuthentication(
