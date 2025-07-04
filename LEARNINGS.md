@@ -119,6 +119,39 @@ This file documents important learnings and findings from building this project.
 - This is a known Jest limitation when testing process.exit calls
 - Alternative: refactor to throw errors instead of calling process.exit directly
 
+## List Command Implementation
+
+### Design Decisions
+- Implemented as subcommands: `list services`, `list endpoints <service>`, `list aliases <service>`
+- Uses same dual-mode output pattern (JSON default, --pretty for tables)
+- Table formatting added to OutputFormatter with overloaded signatures
+- Supports both headers/rows array style and data/options object style
+- Clean separation of stdout (data) and stderr (UI messages)
+
+### Table Formatting
+- ASCII table implementation with Unicode box-drawing characters
+- Column width calculation based on content
+- Headers in bold using chalk
+- Supports empty data with appropriate messaging
+- In JSON mode, table() returns raw JSON instead
+
+### Error Handling
+- Service not found errors include help text to list available services
+- Validation in builder ensures service name provided for endpoints/aliases
+- Consistent error formatting using OvrmndError
+
+### TypeScript Challenges
+- Yargs type inference issues with positional arguments
+- Had to cast builder return type due to complex generics
+- Method binding issues fixed by using arrow functions for handler
+- Optional path parameter handling in extractParameters
+
+### Testing Approach
+- Mocked ConfigDiscovery and OutputFormatter
+- Unit tests cover all scenarios including empty states
+- Integration tests use temp directories for isolation
+- Process.stdout.write spying for JSON output verification
+
 ## Future Considerations
 - Batch operations moved to Phase 5 (Advanced Features)
 - Cache implementation should use flat-cache as planned
@@ -126,3 +159,6 @@ This file documents important learnings and findings from building this project.
 - Could add config option to set default output format preference
 - May want to add error retry logic with exponential backoff
 - Consider adding response time tracking in error context
+- List command could be enhanced with filtering options (e.g., --filter, --limit)
+- Could add sorting options for list output
+- Validate command will need careful YAML error reporting

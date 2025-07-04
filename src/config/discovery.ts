@@ -127,3 +127,49 @@ export async function getAvailableServices(): Promise<string[]> {
 
   return Array.from(serviceNames).sort()
 }
+
+/**
+ * Load all service configurations
+ */
+export async function loadAllConfigs(
+  configDir?: string,
+): Promise<Map<string, ServiceConfig>> {
+  // If a specific config directory is provided, use only that
+  if (configDir) {
+    const configs = await discoverConfigsInDir(configDir, false)
+    const serviceMap = new Map<string, ServiceConfig>()
+
+    for (const configFile of configs) {
+      serviceMap.set(configFile.config.serviceName, configFile.config)
+    }
+
+    return serviceMap
+  }
+
+  // Otherwise, use standard discovery
+  const { global, local } = await discoverConfigs()
+  const serviceMap = new Map<string, ServiceConfig>()
+
+  // Add global configs first
+  for (const configFile of global) {
+    serviceMap.set(configFile.config.serviceName, configFile.config)
+  }
+
+  // Override with local configs
+  for (const configFile of local) {
+    serviceMap.set(configFile.config.serviceName, configFile.config)
+  }
+
+  return serviceMap
+}
+
+/**
+ * ConfigDiscovery class for backward compatibility
+ */
+export class ConfigDiscovery {
+  async loadAll(
+    configDir?: string,
+  ): Promise<Map<string, ServiceConfig>> {
+    return loadAllConfigs(configDir)
+  }
+}

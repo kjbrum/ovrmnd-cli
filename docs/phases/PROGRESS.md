@@ -4,9 +4,9 @@
 
 This document tracks the implementation progress of the Ovrmnd CLI project. It provides real-time visibility into completed work, current focus, and upcoming tasks.
 
-**Last Updated**: 2025-07-02
-**Current Phase**: Phase 2 - In Progress
-**Overall Progress**: ~40%
+**Last Updated**: 2025-07-03
+**Current Phase**: Phase 3 - In Progress
+**Overall Progress**: ~50%
 
 ---
 
@@ -15,8 +15,8 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase | Status | Progress | Start Date | Completion Date |
 |-------|--------|----------|------------|-----------------|
 | Phase 1: Project Scaffolding | 🟢 Completed | 100% | 2025-07-02 | 2025-07-02 |
-| Phase 2: Core API Execution | 🟡 In Progress | 87% | 2025-07-02 | - |
-| Phase 3: CLI Usability & DX | 🔴 Not Started | 0% | - | - |
+| Phase 2: Core API Execution | 🟢 Completed | 100% | 2025-07-02 | 2025-07-03 |
+| Phase 3: CLI Usability & DX | 🟡 In Progress | 33% | 2025-07-03 | - |
 | Phase 4: Performance & Optimization | 🔴 Not Started | 0% | - | - |
 | Phase 5: Advanced Features | 🔴 Not Started | 0% | - | - |
 
@@ -92,22 +92,22 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [x] Output formatting
   - [x] stdout/stderr separation
 
-- [ ] **T-06: Standardized Error Output**
-  - [ ] Error schema definition
-  - [ ] Error transformation
-  - [ ] Error handling
-  - [ ] Status code preservation
+- [x] **T-06: Standardized Error Output**
+  - [x] Error schema definition
+  - [x] Error transformation
+  - [x] Error handling
+  - [x] Status code preservation
 
 ---
 
 ## Phase 3: CLI Usability & Developer Experience
 
 ### Tasks:
-- [ ] **T-01: List Command Implementation**
-  - [ ] List services
-  - [ ] List endpoints
-  - [ ] List aliases
-  - [ ] Table formatting
+- [x] **T-01: List Command Implementation**
+  - [x] List services
+  - [x] List endpoints
+  - [x] List aliases
+  - [x] Table formatting
 
 - [ ] **T-02: Validate Command**
   - [ ] YAML syntax validation
@@ -176,9 +176,9 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ## Current Focus
 
-**Phase**: 2 (In Progress)
-**Task**: T-01, T-02, T-03, T-04, T-05 complete (20/23 tasks complete)
-**Status**: Core API execution MVP is complete! Users can now call APIs using YAML configurations. Configuration system, authentication, HTTP client, parameter mapping, call command, and output formatting all implemented. stdout/stderr separation ensures clean output for piping and scripting. Batch operations moved to Phase 5 (Advanced Features).
+**Phase**: 3 (In Progress)
+**Task**: T-01 complete (1/3 tasks complete)
+**Status**: List command implementation complete! Users can now list services, endpoints, and aliases with both JSON and human-readable output formats. Table formatting implemented for better visibility. Next: Validate command and debug mode enhancements.
 
 ---
 
@@ -208,18 +208,17 @@ None currently identified.
 
 ## Next Steps
 
-1. Ensure clean separation of stdout/stderr
-2. Define error schema for JSON mode
-3. Implement error transformation and handling
-4. Preserve HTTP status codes and details
+1. Implement validate command for YAML configuration validation
+2. Add debug mode enhancements for better troubleshooting
+3. Begin Phase 4: Performance optimizations with caching
 
 ---
 
 ## Metrics
 
 - **Total Tasks**: 53
-- **Completed Tasks**: 29
-- **In Progress Tasks**: 1
+- **Completed Tasks**: 33
+- **In Progress Tasks**: 0
 - **Blocked Tasks**: 0
 
 ---
@@ -237,6 +236,17 @@ None currently identified.
   - Switched default output to JSON (better for LLM consumption)
   - Changed --json flag to --pretty flag
   - Moved batch operations to Phase 5 (Advanced Features)
+- Phase 3 started (33% complete):
+  - List Command Implementation (T-01):
+    - Created ListCommand with subcommands for services, endpoints, and aliases
+    - Implemented table formatting with ASCII tables in OutputFormatter
+    - Added dual-mode output (JSON by default, --pretty for human-readable)
+    - Registered command in CLI
+    - Added comprehensive unit and integration tests
+    - Users can now:
+      - `ovrmnd list services` - see all configured services
+      - `ovrmnd list endpoints <service>` - see endpoints for a service
+      - `ovrmnd list aliases <service>` - see aliases for a service
 
 ### 2025-07-02
 - Initial progress tracking document created

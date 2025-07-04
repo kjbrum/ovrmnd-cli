@@ -7,6 +7,7 @@ import { handleError } from './utils/error'
 import { readFileSync } from 'fs'
 import path from 'path'
 import { CallCommand } from './commands/call'
+import { ListCommand } from './commands/list'
 
 const logger = createLogger('cli')
 
@@ -36,6 +37,7 @@ async function main(): Promise<void> {
         Usage: $0 <command> [options]`,
       )
       .command(new CallCommand())
+      .command(new ListCommand())
       .demandCommand(1, 'You need at least one command')
       .recommendCommands()
       .strict()

@@ -13,6 +13,10 @@ export class OutputFormatter {
     return this.jsonMode
   }
 
+  get isJsonMode(): boolean {
+    return this.jsonMode
+  }
+
   format(data: unknown): string {
     if (this.jsonMode) {
       return JSON.stringify(data, null, 2)
@@ -136,12 +140,36 @@ export class OutputFormatter {
   }
 
   table(
-    data: unknown[],
-    options?: {
+    headersOrData: string[] | unknown[],
+    rowsOrOptions?:
+      | string[][]
+      | {
+          columns?: string[]
+          headers?: Record<string, string>
+        },
+  ): string {
+    // Support two call signatures:
+    // 1. table(headers: string[], rows: string[][])
+    // 2. table(data: unknown[], options?: {...})
+
+    if (
+      Array.isArray(headersOrData) &&
+      headersOrData.every(h => typeof h === 'string')
+    ) {
+      // New signature: headers and rows
+      return this.tableFromHeadersAndRows(
+        headersOrData as string[],
+        rowsOrOptions as string[][],
+      )
+    }
+
+    // Original signature: data with options
+    const data = headersOrData as unknown[]
+    const options = rowsOrOptions as {
       columns?: string[]
       headers?: Record<string, string>
-    },
-  ): string {
+    }
+
     if (this.jsonMode) {
       return JSON.stringify(data, null, 2)
     }
@@ -191,6 +219,50 @@ export class OutputFormatter {
             widths[col] ?? 0,
           ),
         )
+        .join(' │ ')
+      lines.push(rowLine)
+    }
+
+    return lines.join('\n')
+  }
+
+  private tableFromHeadersAndRows(
+    headers: string[],
+    rows: string[][],
+  ): string {
+    if (rows.length === 0) {
+      return 'No data'
+    }
+
+    // Calculate column widths
+    const widths = headers.map((header, i) => {
+      let maxWidth = header.length
+      for (const row of rows) {
+        const cellLength = (row[i] ?? '').length
+        maxWidth = Math.max(maxWidth, cellLength)
+      }
+      return maxWidth
+    })
+
+    // Build table
+    const lines: string[] = []
+
+    // Header
+    const headerLine = headers
+      .map((header, i) => header.padEnd(widths[i] ?? 0))
+      .join(' │ ')
+    lines.push(chalk.bold(headerLine))
+
+    // Separator
+    const separator = widths
+      .map(width => '─'.repeat(width))
+      .join('─┼─')
+    lines.push(separator)
+
+    // Rows
+    for (const row of rows) {
+      const rowLine = row
+        .map((cell, i) => (cell ?? '').padEnd(widths[i] ?? 0))
         .join(' │ ')
       lines.push(rowLine)
     }
