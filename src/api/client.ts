@@ -365,6 +365,11 @@ export async function callEndpoint<T = unknown>(
           cacheKey,
           httpResponse.data,
           endpoint.cacheTTL,
+          {
+            service: config.serviceName,
+            endpoint: endpoint.name,
+            url: urlObj.toString(),
+          },
         )
       } catch (cacheError) {
         // Log cache error but don't fail the request

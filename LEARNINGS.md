@@ -301,8 +301,42 @@ if (response.status === 200) {
 
 ### Future Enhancements
 
-- Cache statistics command to view cache usage
-- Cache clear command with service/endpoint filtering
 - Consider memory cache layer for hot data
 - Add cache size limits and eviction policies
 - Support for ETags and conditional requests
+
+## Cache Command Implementation
+
+### Design Decisions
+- Three subcommands: `cache clear`, `cache stats`, `cache list`
+- Clear supports patterns: all, by service, or by service.endpoint
+- Confirmation prompts for destructive operations (unless --force)
+- Stats show total size/entries plus service breakdown with --verbose
+- List shows all cached entries with filtering and metadata
+
+### TypeScript Challenges
+- exactOptionalPropertyTypes required conditional metadata spreading
+- Yargs builder type issues resolved with type casting
+- Async/await not needed for stats and list handlers
+- Template literals required for all string concatenation (ESLint)
+
+### Implementation Details
+- Enhanced CacheStorage to store metadata (service, endpoint, URL)
+- Added getRawEntry method for accessing full cache entries
+- Metadata passed when caching in client with service/endpoint/URL
+- Cache clear returns count of cleared entries for feedback
+- Relative time formatting handles "now" as special case
+
+### Testing Approach
+- Unit tests mock CacheStorage and OutputFormatter
+- Integration tests use real cache with custom directory
+- Prompts auto-reject in CI environment (non-TTY)
+- Console output mocked to verify formatted messages
+- Test both JSON and pretty output modes
+
+### User Experience
+- JSON output by default for programmatic use
+- --pretty flag for human-readable tables and formatting
+- --verbose shows additional detail (cache entry details, service breakdown)
+- Clear confirmation can be skipped with --force flag
+- Helpful error messages guide users to correct usage

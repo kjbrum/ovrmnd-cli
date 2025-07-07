@@ -6,7 +6,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 **Last Updated**: 2025-07-04
 **Current Phase**: Phase 4 - In Progress
-**Overall Progress**: ~65%
+**Overall Progress**: ~70%
 
 ---
 
@@ -17,7 +17,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase 1: Project Scaffolding | 🟢 Completed | 100% | 2025-07-02 | 2025-07-02 |
 | Phase 2: Core API Execution | 🟢 Completed | 100% | 2025-07-02 | 2025-07-03 |
 | Phase 3: CLI Usability & DX | 🟢 Completed | 100% | 2025-07-03 | 2025-07-04 |
-| Phase 4: Performance & Optimization | 🟡 In Progress | 33% | 2025-07-04 | - |
+| Phase 4: Performance & Optimization | 🟡 In Progress | 67% | 2025-07-04 | - |
 | Phase 5: Advanced Features | 🔴 Not Started | 0% | - | - |
 
 **Legend**: 🔴 Not Started | 🟡 In Progress | 🟢 Completed | ⏸️ Blocked
@@ -132,10 +132,10 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [x] TTL implementation
   - [x] Cache logging
 
-- [ ] **T-02: Cache Command**
-  - [ ] Cache clear functionality
-  - [ ] Cache statistics
-  - [ ] Cache inspection
+- [x] **T-02: Cache Command**
+  - [x] Cache clear functionality
+  - [x] Cache statistics
+  - [x] Cache inspection
 
 - [ ] **T-03: Response Transformation**
   - [ ] Field extraction
@@ -177,12 +177,13 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 ## Current Focus
 
 **Phase**: 4 (In Progress)
-**Status**: Response caching implemented! Phase 4 is 33% complete:
-- Cache Storage: Implemented with flat-cache for persistent storage
-- TTL Support: Automatic expiration of cached entries
-- Cache Key Generation: URL and header-based keys (auth excluded)
-- Debug Logging: Cache hit/miss information in debug mode
-Next: T-02 Cache Command for cache management operations.
+**Status**: Cache Command implemented! Phase 4 is 67% complete:
+- Response Caching (T-01): ✅ Complete with flat-cache, TTL support, and debug logging
+- Cache Command (T-02): ✅ Complete with clear, stats, and list functionality
+  - Clear: All cache, by service, or by endpoint with confirmation
+  - Stats: Total entries/size, service breakdown, oldest/newest entries
+  - List: View cached endpoints with metadata, verbose mode for details
+Next: T-03 Response Transformation for field extraction and renaming.
 
 ---
 
@@ -231,7 +232,7 @@ None currently identified.
 ## Change Log
 
 ### 2025-07-04
-- Phase 4 started (33% complete):
+- Phase 4 progressed (67% complete):
   - Response Caching Implementation (T-01):
     - Created CacheStorage class using flat-cache for persistent storage
     - Implemented cache key generation from URL and headers
@@ -246,6 +247,21 @@ None currently identified.
     - Only GET requests with cacheTTL are cached
     - Non-200 responses are not cached
     - Cache errors don't fail requests (graceful degradation)
+  - Cache Command Implementation (T-02):
+    - Created CacheCommand with clear, stats, and list actions
+    - Installed prompts package for confirmation dialogs
+    - Enhanced CacheStorage to include service/endpoint metadata
+    - Implemented cache clear with pattern matching and confirmation
+    - Implemented cache statistics with service breakdown
+    - Implemented cache list with filtering and verbose mode
+    - Added formatting utilities for bytes, duration, relative time
+    - Registered command in CLI
+    - Created comprehensive unit and integration tests
+    - Commands available:
+      - `ovrmnd cache clear [target] [--force]` - Clear cache entries
+      - `ovrmnd cache stats [--verbose]` - Show cache statistics
+      - `ovrmnd cache list [target] [--verbose]` - List cached entries
+    - JSON output by default, --pretty for human-readable format
 - Phase 3 completed (100%):
   - Validate Command Implementation (T-02):
     - Created ValidateCommand with support for validating all services or specific ones

@@ -8,6 +8,11 @@ export interface CacheEntry<T = unknown> {
   data: T
   timestamp: number
   ttl: number
+  metadata?: {
+    service?: string
+    endpoint?: string
+    url?: string
+  }
 }
 
 export class CacheStorage {
@@ -121,12 +126,18 @@ export class CacheStorage {
   /**
    * Store a response in the cache
    */
-  set<T = unknown>(key: string, data: T, ttl: number): void {
+  set<T = unknown>(
+    key: string,
+    data: T,
+    ttl: number,
+    metadata?: CacheEntry['metadata'],
+  ): void {
     try {
       const entry: CacheEntry<T> = {
         data,
         timestamp: Date.now(),
         ttl,
+        ...(metadata && { metadata }),
       }
 
       this.cache.setKey(key, entry)
@@ -233,5 +244,12 @@ export class CacheStorage {
     }
 
     return entries
+  }
+
+  /**
+   * Get raw cache entry (for cache command)
+   */
+  getRawEntry(key: string): CacheEntry | undefined {
+    return this.cache.getKey(key) as CacheEntry | undefined
   }
 }
