@@ -450,3 +450,42 @@ transform: [
 - Test fixtures should be separated from runtime configuration directories
 - Use dedicated test directories to avoid polluting the application's configuration space
 - Document test fixtures clearly so they can be used for manual testing
+
+## Validate Command Output Formatting
+
+### Problem
+- Duplicate icons appeared in error and warning messages (e.g., `✗ ✖ Error:` instead of just `✖ Error:`)
+- The `formatError()` and `warning()` methods in OutputFormatter already add icon prefixes
+- Validation passed/failed messages also had duplicate icons
+
+### Solution
+1. **Remove explicit icons from message strings**: Since the formatter methods add icons, don't include them in the message
+   - Changed `formatter.formatError('✖ Error: ...')` to `formatter.formatError('Error: ...')`
+   - Changed `formatter.warning('⚠ Warning: ...')` to `formatter.warning('Warning: ...')`
+   - Changed final messages from `'✖ Validation failed'` to `'Validation failed'`
+
+2. **Add dim() method to OutputFormatter**: Created a new method for subtle text formatting
+   ```typescript
+   dim(message: string): string {
+     if (this.jsonMode) {
+       return message
+     }
+     return chalk.gray(message)
+   }
+   ```
+
+3. **Consistent suggestion formatting**: All suggestions now use `formatter.dim()` for subtle gray text
+
+### TypeScript/ESLint Considerations
+- When using methods that return typed values, ESLint may require explicit type annotations
+- Fixed `Unsafe assignment of an 'any' value` by importing and using the correct type:
+  ```typescript
+  import type { JsonError } from '../types/error'
+  const jsonError: JsonError = error.toJsonError()
+  ```
+
+### Key Learnings
+1. **Check existing formatter methods**: Before adding icons or formatting, verify what the formatter already provides
+2. **Consistency in formatting**: Use the same formatting approach (dim/gray) for all similar content (suggestions)
+3. **Type imports for ESLint**: When ESLint complains about unsafe assignments, check if you need to import the type
+4. **Visual hierarchy**: Use different text styles (bold, normal, dim) to create clear visual hierarchy in CLI output

@@ -235,7 +235,7 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
 
         result.errors.forEach(error => {
           process.stderr.write(
-            `  ${formatter.formatError(`✖ Error: ${error.message}`)}\n`,
+            `  ${formatter.formatError(`Error: ${error.message}`)}\n`,
           )
           if (error.line) {
             process.stderr.write(
@@ -244,20 +244,17 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
           }
           if (error.suggestion) {
             process.stderr.write(
-              `${formatter.warning(
-                `    Suggestion: ${error.suggestion}`,
-              )}\n`,
+              `    ${formatter.dim(`Suggestion: ${error.suggestion}`)}\n`,
             )
           }
         })
 
         result.warnings.forEach(warning => {
-          const prefix = strict ? '✖' : '⚠'
           const formatMethod = strict
             ? (msg: string): string => formatter.formatError(msg)
             : (msg: string): string => formatter.warning(msg)
           process.stderr.write(
-            `  ${formatMethod(`${prefix} Warning: ${warning.message}`)}\n`,
+            `  ${formatMethod(`Warning: ${warning.message}`)}\n`,
           )
           if (warning.line) {
             process.stderr.write(
@@ -266,7 +263,7 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
           }
           if (warning.suggestion) {
             process.stderr.write(
-              `    Suggestion: ${warning.suggestion}\n`,
+              `    ${formatter.dim(`Suggestion: ${warning.suggestion}`)}\n`,
             )
           }
         })
@@ -280,17 +277,17 @@ export class ValidateCommand extends BaseCommand<ValidateArgs> {
 
     if (totalErrors > 0) {
       process.stderr.write(
-        `\n${formatter.formatError('✖ Validation failed')}\n`,
+        `\n${formatter.formatError('Validation failed')}\n`,
       )
     } else if (totalWarnings > 0 && strict) {
       process.stderr.write(
         `\n${formatter.formatError(
-          '✖ Validation failed (strict mode)',
+          'Validation failed (strict mode)',
         )}\n`,
       )
     } else {
       process.stderr.write(
-        `\n${formatter.success('✓ Validation passed')}\n`,
+        `\n${formatter.success('Validation passed')}\n`,
       )
     }
   }

@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import type { ApiResponse } from '../types'
+import type { JsonError } from '../types/error'
 import { OvrmndError } from './error'
 
 export class OutputFormatter {
@@ -53,7 +54,7 @@ export class OutputFormatter {
   formatError(error: unknown): string {
     if (this.jsonMode) {
       if (error instanceof OvrmndError) {
-        const jsonError = error.toJsonError()
+        const jsonError: JsonError = error.toJsonError()
         return JSON.stringify(jsonError, null, 2)
       }
       return JSON.stringify(
@@ -113,6 +114,13 @@ export class OutputFormatter {
       return JSON.stringify({ warning: message }, null, 2)
     }
     return chalk.yellow(`⚠ ${message}`)
+  }
+
+  dim(message: string): string {
+    if (this.jsonMode) {
+      return message
+    }
+    return chalk.gray(message)
   }
 
   formatApiResponse(response: ApiResponse): string {
