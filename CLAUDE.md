@@ -8,8 +8,6 @@ Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs
 
 ## Current Status & Important Files
 
-**Project Phase**: Phase 2 In Progress - Core API Execution (80% complete)
-
 **Key Documentation**:
 - `docs/phases/PROGRESS.md` - **ALWAYS CHECK FIRST** to understand current implementation status
 - `docs/phase-breakdown.md` - Detailed implementation phases

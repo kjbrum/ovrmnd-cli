@@ -57,7 +57,7 @@ export function mapParameters(
       throw new OvrmndError({
         code: ErrorCode.PARAM_REQUIRED,
         message: `Missing required path parameter: ${param}`,
-        help: `Provide --${param} <value>`,
+        help: `Provide ${param}=<value>`,
       })
     }
   }

@@ -6,7 +6,9 @@
       "Bash(npm test:*)",
       "Bash(./dist/cli.js:*)",
       "Bash(node dist/cli.js:*)",
-      "Bash(ovrmnd:*)"
+      "Bash(ovrmnd:*)",
+      "Bash(jq:*)",
+      "Bash(./node_modules/.bin/tsc:*)"
     ],
     "deny": []
   }

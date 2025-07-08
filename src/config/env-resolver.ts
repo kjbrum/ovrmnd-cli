@@ -56,10 +56,9 @@ export function resolveEnvVarsInObject<T>(
   }
 
   if (Array.isArray(obj)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-    return obj.map(item =>
+    return obj.map((item: unknown) =>
       resolveEnvVarsInObject(item, debugFormatter),
-    ) as any
+    ) as unknown as T
   }
 
   if (obj !== null && typeof obj === 'object') {

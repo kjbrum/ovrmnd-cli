@@ -9,6 +9,7 @@ import logger from '../utils/logger'
 import { applyAuth, redactAuth } from './auth'
 import type { DebugFormatter } from '../utils/debug'
 import { CacheStorage } from '../cache'
+import { TransformPipeline } from '../transform'
 
 /**
  * API request options
@@ -257,7 +258,7 @@ export async function executeRequest<T = unknown>(
 /**
  * Execute an API call for a specific endpoint
  */
-export async function callEndpoint<T = unknown>(
+export async function callEndpoint(
   config: ResolvedServiceConfig,
   endpoint: EndpointConfig,
   params?: {
@@ -303,7 +304,7 @@ export async function callEndpoint<T = unknown>(
     )
 
     try {
-      const cachedData = cacheStorage.get<T>(cacheKey)
+      const cachedData = cacheStorage.get(cacheKey)
       if (cachedData !== null) {
         // Cache hit
         if (debugFormatter?.isEnabled) {
@@ -322,6 +323,7 @@ export async function callEndpoint<T = unknown>(
             timestamp: Date.now(),
             statusCode: 200,
             cached: true,
+            transformed: !!endpoint.transform,
           },
         }
       } else {
@@ -343,7 +345,7 @@ export async function callEndpoint<T = unknown>(
 
   // Execute request
   try {
-    const httpResponse = await executeRequest<T>(
+    const httpResponse = await executeRequest(
       {
         method: endpoint.method,
         url: urlObj.toString(),
@@ -353,7 +355,26 @@ export async function callEndpoint<T = unknown>(
       debugFormatter,
     )
 
-    // Store successful GET responses in cache
+    // Apply transformations if configured
+    let transformedData = httpResponse.data
+    const transformPipeline = TransformPipeline.fromEndpoint(endpoint)
+
+    if (transformPipeline) {
+      const startTime = Date.now()
+      transformedData = transformPipeline.transform(
+        httpResponse.data,
+        debugFormatter,
+      )
+      const duration = Date.now() - startTime
+
+      logger.debug('Response transformed', {
+        originalSize: JSON.stringify(httpResponse.data).length,
+        transformedSize: JSON.stringify(transformedData).length,
+        duration,
+      })
+    }
+
+    // Store successful GET responses in cache (store transformed data)
     if (
       endpoint.method === 'GET' &&
       endpoint.cacheTTL &&
@@ -363,7 +384,7 @@ export async function callEndpoint<T = unknown>(
       try {
         cacheStorage.set(
           cacheKey,
-          httpResponse.data,
+          transformedData,
           endpoint.cacheTTL,
           {
             service: config.serviceName,
@@ -380,10 +401,11 @@ export async function callEndpoint<T = unknown>(
     // Transform to standard ApiResponse format
     return {
       success: true,
-      data: httpResponse.data,
+      data: transformedData,
       metadata: {
         timestamp: Date.now(),
         statusCode: httpResponse.status,
+        transformed: !!transformPipeline,
       },
     }
   } catch (error) {

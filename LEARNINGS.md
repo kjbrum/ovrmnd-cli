@@ -340,3 +340,95 @@ if (response.status === 200) {
 - --verbose shows additional detail (cache entry details, service breakdown)
 - Clear confirmation can be skipped with --force flag
 - Helpful error messages guide users to correct usage
+
+## Response Transformation Implementation
+
+### Design Decisions
+
+1. **Two-Class Architecture**:
+   - `ResponseTransformer`: Handles single transformation (field extraction OR renaming)
+   - `TransformPipeline`: Chains multiple transformers for complex transformations
+   - Clean separation of concerns and easy to test
+
+2. **Field Path Syntax**:
+   - Dot notation for nested fields: `user.profile.name`
+   - Array access with brackets: `items[0].id`
+   - Handles undefined gracefully - returns undefined instead of throwing
+
+3. **Transform Configuration**:
+   - Single transform: `transform: { fields: [...], rename: {...} }`
+   - Multiple transforms: `transform: [{ fields: [...] }, { rename: {...} }]`
+   - Transforms applied in order, each working on output of previous
+
+4. **Integration with Cache**:
+   - Transformed data is what gets cached
+   - Cache key doesn't include transform config (same data, different views)
+   - Ensures consistency - cached responses match non-cached
+
+### Implementation Patterns
+
+```typescript
+// Field extraction
+transform: {
+  fields: ["id", "name", "address.city", "items[0].price"]
+}
+
+// Field renaming
+transform: {
+  rename: {
+    "login": "username",
+    "created_at": "createdAt"
+  }
+}
+
+// Pipeline of transforms
+transform: [
+  { fields: ["data.users"] },  // Extract nested data
+  { rename: { "login": "username" } }  // Then rename fields
+]
+```
+
+### TypeScript Challenges
+
+1. **Array Type Safety**: 
+   - ESLint complained about array map returning `any`
+   - Fixed by adding type annotation to parameter: `(item: unknown)`
+
+2. **Optional Chaining**:
+   - Calling non-existent method on optional type
+   - Changed from `debugFormatter?.log()` to `debugFormatter?.debug()`
+
+3. **Generic Type Removal**:
+   - `callEndpoint` had unused generic type `T`
+   - Removed generic since function returns `StandardApiResponse`
+
+### Testing Strategy
+
+1. **Unit Tests**: 
+   - Test each transformer method in isolation
+   - Cover edge cases: undefined values, missing fields, invalid paths
+   - Test array access with out-of-bounds indices
+
+2. **Integration Tests**:
+   - Mock API returns complex nested data
+   - Apply various transforms and verify output
+   - Test caching with transformations
+
+### Performance Considerations
+
+- Transforms happen after network response, adding minimal latency
+- JSON stringify used for size calculations in debug mode
+- Could optimize by using object size estimation instead
+
+### Error Handling
+
+- Transforms that fail (e.g., invalid path) return undefined
+- Pipeline continues even if one transform fails
+- Errors logged but don't break the response
+
+### Future Enhancements
+
+- Support for more complex array operations (filtering, mapping)
+- JSONPath support for advanced queries
+- Custom transform functions via plugins
+- Transform validation at config load time

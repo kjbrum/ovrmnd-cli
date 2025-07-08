@@ -28,6 +28,14 @@ const AuthConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for transform configuration
+ */
+const TransformConfigSchema = z.object({
+  fields: z.array(z.string()).optional(),
+  rename: z.record(z.string()).optional(),
+})
+
+/**
  * Zod schema for endpoint configuration
  */
 const EndpointConfigSchema = z.object({
@@ -37,6 +45,9 @@ const EndpointConfigSchema = z.object({
   cacheTTL: z.number().positive().optional(),
   headers: z.record(z.string()).optional(),
   defaultParams: z.record(z.unknown()).optional(),
+  transform: z
+    .union([TransformConfigSchema, z.array(TransformConfigSchema)])
+    .optional(),
 })
 
 /**

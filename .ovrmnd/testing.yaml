@@ -52,11 +52,45 @@ endpoints:
     method: DELETE
     path: /users/{id}
     
-  # Example with cache TTL (when implemented)
+  # Example with cache TTL
   - name: getTodos
     method: GET
     path: /todos
     cacheTTL: 300  # Cache for 5 minutes
+    
+  # Example with field extraction
+  - name: getUserSummary
+    method: GET
+    path: /users/{id}
+    transform:
+      fields: ["id", "name", "email", "address.city"]
+      
+  # Example with field renaming
+  - name: getPost
+    method: GET
+    path: /posts/{id}
+    transform:
+      rename:
+        userId: authorId
+        
+  # Example with multiple transformations
+  - name: listUserNames
+    method: GET
+    path: /users
+    transform:
+      - fields: ["[*].id", "[*].name", "[*].username"]
+      - rename:
+          "[*].username": "[*].handle"
+          
+  # Example with nested field extraction and renaming
+  - name: getUserProfile
+    method: GET
+    path: /users/{id}
+    cacheTTL: 600
+    transform:
+      fields: ["id", "name", "email", "address.street", "address.city", "company.name"]
+      rename:
+        "company.name": "companyName"
 
 aliases:
   # Simple alias with pre-filled parameter

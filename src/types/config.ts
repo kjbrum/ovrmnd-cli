@@ -15,6 +15,14 @@ export interface AuthConfig {
 }
 
 /**
+ * Transform configuration for response modification
+ */
+export interface TransformConfig {
+  fields?: string[] | undefined // Fields to extract (supports dot notation and array patterns)
+  rename?: Record<string, string> | undefined // Field renaming map (oldPath: newPath)
+}
+
+/**
  * Individual endpoint configuration
  */
 export interface EndpointConfig {
@@ -24,6 +32,7 @@ export interface EndpointConfig {
   cacheTTL?: number | undefined // Cache duration in seconds
   headers?: Record<string, string> | undefined
   defaultParams?: Record<string, unknown> | undefined
+  transform?: TransformConfig | TransformConfig[] | undefined // Single or pipeline of transformations
 }
 
 /**
