@@ -432,3 +432,21 @@ transform: [
 - JSONPath support for advanced queries
 - Custom transform functions via plugins
 - Transform validation at config load time
+
+## Test File Organization
+
+### Problem
+- Test YAML files (invalid-test.yaml, syntax-error.yaml, semantic-test.yaml) in `.ovrmnd/` directory caused noise during config discovery
+- Every command that loaded configs would log errors for these intentionally invalid files
+- Files are needed for testing the validate command but shouldn't be in the config directory
+
+### Solution
+- Moved test files to `tests/fixtures/yaml/` directory
+- Created README in fixtures directory documenting the test files
+- Test files can still be validated using: `ovrmnd validate --file tests/fixtures/yaml/invalid-test.yaml`
+- Config discovery no longer encounters these files during normal operations
+
+### Key Learning
+- Test fixtures should be separated from runtime configuration directories
+- Use dedicated test directories to avoid polluting the application's configuration space
+- Document test fixtures clearly so they can be used for manual testing

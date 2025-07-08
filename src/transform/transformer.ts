@@ -45,12 +45,17 @@ export class ResponseTransformer {
       const arrayItemFields = fields
         .filter(f => f.startsWith('[*].'))
         .map(f => f.slice(4)) // Remove "[*]." prefix
-      
-      if (arrayItemFields.length > 0 && arrayItemFields.length === fields.length) {
+
+      if (
+        arrayItemFields.length > 0 &&
+        arrayItemFields.length === fields.length
+      ) {
         // All fields are array item fields, extract from each item
-        return data.map(item => this.extractFields(item, arrayItemFields))
+        return data.map(item =>
+          this.extractFields(item, arrayItemFields),
+        )
       }
-      
+
       // Otherwise, apply fields to each item in the array
       return data.map(item => this.extractFields(item, fields))
     }
@@ -99,18 +104,23 @@ export class ResponseTransformer {
       // Check if rename keys are for array items (e.g., "[*].username" -> "[*].handle")
       const arrayItemRenames: Record<string, string> = {}
       let hasArrayRenames = false
-      
+
       for (const [oldPath, newPath] of Object.entries(rename)) {
-        if (oldPath.startsWith('[*].') && newPath.startsWith('[*].')) {
+        if (
+          oldPath.startsWith('[*].') &&
+          newPath.startsWith('[*].')
+        ) {
           arrayItemRenames[oldPath.slice(4)] = newPath.slice(4)
           hasArrayRenames = true
         }
       }
-      
+
       if (hasArrayRenames) {
-        return data.map(item => this.renameFields(item, arrayItemRenames))
+        return data.map(item =>
+          this.renameFields(item, arrayItemRenames),
+        )
       }
-      
+
       // Otherwise, apply renames to each item
       return data.map(item => this.renameFields(item, rename))
     }

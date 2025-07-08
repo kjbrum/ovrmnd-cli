@@ -236,6 +236,13 @@ None currently identified.
 
 ## Change Log
 
+### 2025-07-08
+- Maintenance and bug fixes:
+  - Moved test YAML files from `.ovrmnd/` to `tests/fixtures/yaml/` to eliminate config discovery noise
+    - Created dedicated test fixtures directory for validation test files
+    - Prevents invalid test files from generating errors during normal operations
+    - Test files can still be validated using `--file` option
+
 ### 2025-07-07
 - Phase 4 completed (100%):
   - Response Transformation Implementation (T-03):
@@ -250,7 +257,6 @@ None currently identified.
     - Created comprehensive unit tests for ResponseTransformer
     - Created integration tests for transformed API calls
     - Updated testing.yaml with transform examples
-    - Fixed all linting and TypeScript errors
     - YAML configuration supports:
       - `transform.fields`: Array of fields to extract
       - `transform.rename`: Object mapping old names to new names

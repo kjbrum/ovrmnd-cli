@@ -196,6 +196,19 @@ When adding new features to the YAML configuration structure, **ALWAYS** update 
 
 This ensures we can test all functionality with real API calls during development.
 
+### Test YAML Files
+
+Invalid YAML files for testing the validate command are located in `tests/fixtures/yaml/`:
+- `invalid-test.yaml` - Various validation errors (missing fields, duplicates, etc.)
+- `syntax-error.yaml` - YAML syntax errors (indentation, missing colons)
+- `semantic-test.yaml` - Semantic warnings (env vars, cache on non-GET, etc.)
+
+To test validation:
+```bash
+ovrmnd validate --file tests/fixtures/yaml/invalid-test.yaml
+ovrmnd validate --file tests/fixtures/yaml/syntax-error.yaml --pretty
+```
+
 ### Running Comprehensive Tests
 
 Use the `run-tests` command to execute all test suites and manual CLI tests:

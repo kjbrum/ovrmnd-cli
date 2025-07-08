@@ -92,7 +92,19 @@ node dist/cli.js call testing.createUser name="Test User" email="test@example.co
 node dist/cli.js call testing.listUsers --query _limit=2 --header X-Test=value
 ```
 
-### 3.3 Error Cases
+### 3.3 Response Transformation
+```bash
+# Test field extraction (array fields)
+node dist/cli.js call testing.listUserNames --pretty
+
+# Test nested field extraction
+node dist/cli.js call testing.getUserProfile id=1 --pretty
+
+# Test field renaming
+node dist/cli.js call testing.listUserNames
+```
+
+### 3.4 Error Cases
 ```bash
 # Invalid target format
 node dist/cli.js call testing
@@ -168,22 +180,82 @@ node dist/cli.js call --help
 # Verify examples use correct syntax (service.endpoint)
 ```
 
-## 8. **Performance Check**
+## 8. **Validate Command Testing**
+
+Test the validate command with intentionally invalid YAML files:
+
+```bash
+# Test with invalid configuration file
+node dist/cli.js validate --file tests/fixtures/yaml/invalid-test.yaml --pretty
+
+# Test with syntax errors
+node dist/cli.js validate --file tests/fixtures/yaml/syntax-error.yaml --pretty
+
+# Test with semantic warnings
+node dist/cli.js validate --file tests/fixtures/yaml/semantic-test.yaml --pretty
+
+# Test strict mode (warnings become errors)
+node dist/cli.js validate --file tests/fixtures/yaml/semantic-test.yaml --strict
+
+# Validate all services in .ovrmnd directories
+node dist/cli.js validate --pretty
+```
+
+## 9. **List Command Testing**
+
+Test the list command functionality:
+
+```bash
+# List all services
+node dist/cli.js list services --pretty
+
+# List endpoints for a service
+node dist/cli.js list endpoints testing --pretty
+
+# List aliases for a service
+node dist/cli.js list aliases testing --pretty
+
+# Test JSON output
+node dist/cli.js list services | jq .
+```
+
+## 10. **Cache Command Testing** (if caching is implemented)
+
+```bash
+# View cache statistics
+node dist/cli.js cache stats --pretty
+
+# List cached entries
+node dist/cli.js cache list --pretty
+
+# Clear cache (with confirmation)
+node dist/cli.js cache clear
+
+# Force clear without confirmation
+node dist/cli.js cache clear --force
+```
+
+## 11. **Performance Check**
 
 ```bash
 # Time a simple request
-time node dist/cli.js call testing.me --json > /dev/null
+time node dist/cli.js call testing.me > /dev/null
 
 # Should complete in under 2 seconds for local API
 ```
 
-## 9. **Review Test Configuration**
+## 12. **Review Test Configuration**
 
 Ensure `.ovrmnd/testing.yaml` is up to date:
 - Includes all endpoint types (GET, POST, PUT, DELETE)
 - Has examples of all parameter types
 - Includes aliases with various patterns
 - Documents new YAML features as they're added
+
+Test YAML files for validation testing are located in `tests/fixtures/yaml/`:
+- `invalid-test.yaml` - Various validation errors
+- `syntax-error.yaml` - YAML syntax errors
+- `semantic-test.yaml` - Semantic warnings
 
 </instructions>
 
