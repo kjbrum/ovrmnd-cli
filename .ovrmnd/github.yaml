@@ -30,6 +30,15 @@ endpoints:
     method: GET
     path: /user
     cacheTTL: 600
+  - name: listGists
+    method: GET
+    path: /gists
+    cacheTTL: 300
+    defaultParams:
+      per_page: 5
+      page: 1
+    transform:
+      fields: ['[*].url', '[*].html_url', '[*].description']
 aliases:
   - name: me
     endpoint: getAuthenticatedUser
@@ -37,3 +46,5 @@ aliases:
     endpoint: listRepos
     args:
       username: ${GITHUB_USERNAME}
+  - name: myGists
+    endpoint: listGists
