@@ -30,10 +30,18 @@ This phase adds convenience features that make the CLI more powerful and easier 
 - Include common authentication patterns
 - Create example endpoints
 - Set up .gitignore for security
-- **AI-powered configuration generation** (planned enhancement)
-  - Natural language prompts to generate configs
-  - Automatic API research and endpoint discovery
-  - See [AI Enhancement Plan](../../plans/ai-init-enhancement.md)
+
+### Batch Operations
+- Execute multiple API calls in single command
+- Parallel execution for performance
+- Result aggregation and formatting
+- Error handling for partial failures
+
+### AI-Powered Configuration Generation
+- Natural language prompts to generate configs
+- Automatic API research and endpoint discovery
+- Integration with Claude Code SDK
+- See [AI Enhancement Plan](../../plans/ai-init-enhancement.md)
 
 ## Implementation Examples
 

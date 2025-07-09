@@ -165,13 +165,19 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [x] Authentication patterns  
   - [x] Example endpoints
   - [x] Interactive prompts for service configuration
-  - [ ] **AI-powered configuration generation** (planned enhancement - see [AI Enhancement Plan](../plans/ai-init-enhancement.md))
 
 - [ ] **T-04: Batch Operations**
   - [ ] Multiple API calls in single command
   - [ ] Parallel execution
   - [ ] Result aggregation
   - [ ] Error handling for partial failures
+
+- [ ] **T-05: AI-Powered Configuration Generation**
+  - [ ] Natural language prompt support for init command
+  - [ ] Claude Code SDK integration
+  - [ ] API documentation research and parsing
+  - [ ] Intelligent endpoint discovery
+  - [ ] See [AI Enhancement Plan](../plans/ai-init-enhancement.md) for details
 
 ---
 
@@ -199,7 +205,10 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - Custom output path support
   - Comprehensive unit and integration tests
 
-**Next Task**: Batch Operations (T-04)
+**Next Tasks**: 
+1. Batch Operations (T-04)
+2. AI-Powered Configuration Generation (T-05)
+
 - Test command (T-02) was skipped - functionality was redundant with call command
 
 ---
@@ -252,6 +261,10 @@ None currently identified.
 ## Change Log
 
 ### 2025-07-09
+- Phase 5 organization update:
+  - Moved AI-powered configuration generation from T-03 to new T-05
+  - This allows batch operations (T-04) to be implemented first
+  - AI enhancement remains a planned feature but is now properly sequenced
 - Phase 5 progressed (75% complete):
   - Init Command (T-03) completed:
     - Created InitCommand extending BaseCommand pattern
