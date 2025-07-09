@@ -605,8 +605,31 @@ ovrmnd call api.me --batch-json='[{},{"id":"5"}]'  # First uses alias default, s
 
 ### Future Enhancements
 
-- Parallel execution with concurrency control
+- Parallel execution with concurrency control (see [Parallel Batch Execution Plan](docs/plans/parallel-batch-execution.md))
 - Batch file input (JSON file instead of CLI arg)
 - Progress bar for large batches
 - Retry logic for failed requests
 - Result filtering/transformation
+
+### Why Sequential Execution Was Chosen
+
+1. **Rate Limiting Safety**: Sequential execution naturally prevents overwhelming APIs with too many concurrent requests. Many APIs have rate limits (e.g., 100 requests/minute), and parallel execution could easily exceed these limits.
+
+2. **Simpler Implementation**: Sequential execution avoids complex concurrency control, thread-safe result collection, and race condition handling.
+
+3. **Predictable Behavior**: Errors occur in order, progress is linear, and debugging is straightforward.
+
+4. **Good Default**: Makes the tool a "good citizen" by default - users must explicitly opt into parallel execution if they understand their API's limits.
+
+### Parallel Execution Considerations
+
+When implementing parallel execution (Phase 5, T-06), key challenges include:
+
+1. **Concurrency Control**: Need to limit simultaneous connections to prevent resource exhaustion
+2. **Rate Limiting**: Must implement token bucket or sliding window algorithms
+3. **Error Handling**: Fail-fast mode requires cancelling in-flight requests
+4. **Progress Tracking**: Need thread-safe progress updates and possibly progress bars
+5. **Result Ordering**: Must preserve input order despite async completion
+6. **Memory Management**: Large batches could consume significant memory if not handled carefully
+
+See the full implementation plan in [docs/plans/parallel-batch-execution.md](docs/plans/parallel-batch-execution.md)

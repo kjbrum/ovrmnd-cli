@@ -179,12 +179,20 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [ ] Intelligent endpoint discovery
   - [ ] See [AI Enhancement Plan](../plans/ai-init-enhancement.md) for details
 
+- [ ] **T-06: Parallel Batch Execution**
+  - [ ] Add --parallel flag for concurrent execution
+  - [ ] Implement concurrency limiting (--concurrency flag)
+  - [ ] Add rate limiting support (--rate-limit flag)
+  - [ ] Enhanced progress tracking for parallel operations
+  - [ ] Fail-fast mode with request cancellation
+  - [ ] See [Parallel Batch Execution Plan](../plans/parallel-batch-execution.md) for details
+
 ---
 
 ## Current Focus
 
 **Phase**: 5 - Advanced Features & Shortcuts
-**Status**: In Progress (90% complete)
+**Status**: In Progress (75% complete)
 
 **Completed in Phase 5**:
 - Alias System (T-01): ✅ Complete - discovered it was already implemented!
@@ -223,6 +231,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 **Next Tasks**: 
 1. AI-Powered Configuration Generation (T-05)
+2. Parallel Batch Execution (T-06) - Enhancement to existing batch operations
 
 - Test command (T-02) was skipped - functionality was redundant with call command
 
@@ -266,9 +275,9 @@ None currently identified.
 
 ## Metrics
 
-- **Total Tasks**: 57
+- **Total Tasks**: 58
 - **Completed Tasks**: 55
-- **In Progress Tasks**: 1 (AI-Powered Configuration)
+- **In Progress Tasks**: 2 (AI-Powered Configuration, Parallel Batch Execution)
 - **Blocked Tasks**: 0
 
 ---

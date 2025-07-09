@@ -161,10 +161,31 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
    - Create service template generation
    - Include common authentication patterns
    - Generate example endpoints
-   - Add .gitignore entries for .env files
+   - Add interactive prompts for configuration
+
+4. **T-04: Batch Operations**
+   - Multiple API calls in single command
+   - Sequential execution (safe default)
+   - Result aggregation
+   - Error handling for partial failures
+
+5. **T-05: AI-Powered Configuration Generation**
+   - Natural language prompt support for init command
+   - Claude Code SDK integration
+   - API documentation research and parsing
+   - Intelligent endpoint discovery
+   - See [AI Enhancement Plan](plans/ai-init-enhancement.md)
+
+6. **T-06: Parallel Batch Execution**
+   - Add --parallel flag for concurrent execution
+   - Implement concurrency limiting (--concurrency flag)
+   - Add rate limiting support (--rate-limit flag)
+   - Enhanced progress tracking for parallel operations
+   - Fail-fast mode with request cancellation
+   - See [Parallel Batch Execution Plan](plans/parallel-batch-execution.md)
 
 ### Dependencies: Phases 2, 3, 4
-### Estimated Duration: 2-3 days
+### Estimated Duration: 3-4 days
 
 ---
 
