@@ -260,6 +260,7 @@ None currently identified.
     - Support for bearer token and API key authentication
     - Example alias and transform configurations included in template
     - Dual-mode output: JSON by default, --pretty for human-readable
+    - Interactive mode with --interactive|-i flag for guided configuration
     - File overwrite protection with --force flag
     - Support for --global flag to create in ~/.ovrmnd directory
     - Custom output path support with --output option

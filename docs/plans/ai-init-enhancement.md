@@ -38,6 +38,7 @@ interface InitArgs {
   output?: string
   force: boolean
   global: boolean
+  interactive: boolean
   pretty: boolean
   debug: boolean
   prompt?: string  // NEW: AI generation prompt

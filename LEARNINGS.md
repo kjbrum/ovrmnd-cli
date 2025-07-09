@@ -489,3 +489,26 @@ transform: [
 2. **Consistency in formatting**: Use the same formatting approach (dim/gray) for all similar content (suggestions)
 3. **Type imports for ESLint**: When ESLint complains about unsafe assignments, check if you need to import the type
 4. **Visual hierarchy**: Use different text styles (bold, normal, dim) to create clear visual hierarchy in CLI output
+
+## Init Command Interactive Mode
+
+### Design Decision
+- Changed from using `--pretty` flag to control interactive mode to a dedicated `--interactive|-i` flag
+- This provides clearer intent and separation of concerns:
+  - `--pretty` is for output formatting (JSON vs human-readable)
+  - `--interactive` is for controlling user interaction during configuration
+- Aligns with common CLI patterns where interactive mode is explicitly opted into
+
+### Implementation Details
+1. **Flag Addition**: Added `interactive` boolean option with alias `-i` to the command builder
+2. **Args Interface**: Updated `InitArgs` to include `interactive: boolean` property
+3. **Handler Logic**: Changed conditional from `args.pretty` to `args.interactive` for prompting behavior
+4. **Help Text**: Updated examples to show `--interactive` usage instead of `--pretty`
+
+### Testing Updates
+- All test cases updated to use `--interactive` instead of `--pretty` for interactive mode
+- Tests remain comprehensive, covering both interactive and non-interactive flows
+- Mock implementations continue to work correctly with the new flag
+
+### Key Learning
+When a flag is being used for multiple purposes (output formatting AND behavior control), it's better to split into separate flags with clear, single responsibilities. This makes the CLI more intuitive and the code more maintainable.

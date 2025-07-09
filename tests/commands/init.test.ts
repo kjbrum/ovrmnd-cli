@@ -110,6 +110,16 @@ describe('InitCommand', () => {
         }),
       )
 
+      expect(yargs.option).toHaveBeenCalledWith(
+        'interactive',
+        expect.objectContaining({
+          alias: 'i',
+          describe: 'Use interactive mode for configuration',
+          type: 'boolean',
+          default: false,
+        }),
+      )
+
       expect(result).toBe(yargs)
     })
   })
@@ -131,6 +141,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -161,6 +172,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -182,6 +194,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -204,6 +217,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: true,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -226,6 +240,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: true,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -272,6 +287,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: true,
           pretty: true,
           debug: false,
         })
@@ -309,6 +325,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: true,
           pretty: true,
           debug: false,
         })
@@ -350,6 +367,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: true,
           pretty: true,
           debug: false,
         })
@@ -371,6 +389,7 @@ describe('InitCommand', () => {
           template: 'rest',
           force: false,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })
@@ -407,6 +426,7 @@ describe('InitCommand', () => {
           output: '/custom/path/custom.yml',
           force: false,
           global: false,
+          interactive: false,
           pretty: false,
           debug: false,
         })

@@ -14,6 +14,7 @@ interface InitArgs {
   output?: string
   force: boolean
   global: boolean
+  interactive: boolean
   pretty: boolean
   debug: boolean
 }
@@ -61,6 +62,12 @@ export class InitCommand extends BaseCommand<InitArgs> {
         type: 'boolean',
         default: false,
       })
+      .option('interactive', {
+        alias: 'i',
+        describe: 'Use interactive mode for configuration',
+        type: 'boolean',
+        default: false,
+      })
       .option('pretty', {
         describe: 'Output in human-readable format',
         type: 'boolean',
@@ -71,14 +78,17 @@ export class InitCommand extends BaseCommand<InitArgs> {
         type: 'boolean',
         default: false,
       })
-      .example('$0 init github', 'Interactive GitHub service setup')
+      .example(
+        '$0 init github --interactive',
+        'Interactive GitHub service setup',
+      )
       .example(
         '$0 init myapi --template=rest',
         'Create REST API template',
       )
       .example(
-        '$0 init slack --global',
-        'Create in global directory',
+        '$0 init slack --global --interactive',
+        'Create in global directory with prompts',
       ) as unknown as Argv<InitArgs>
   }
 
@@ -106,8 +116,8 @@ export class InitCommand extends BaseCommand<InitArgs> {
 
       // Check if file exists
       if (!args.force && (await this.fileExists(outputPath))) {
-        if (!args.pretty) {
-          // JSON mode
+        if (!args.interactive) {
+          // Non-interactive mode
           process.stdout.write(
             `${JSON.stringify({
               success: false,
@@ -187,13 +197,13 @@ export class InitCommand extends BaseCommand<InitArgs> {
   private async collectServiceInfo(
     args: ArgumentsCamelCase<InitArgs>,
   ): Promise<ServiceInfo> {
-    if (!args.pretty) {
-      // JSON mode - require service name
+    if (!args.interactive) {
+      // Non-interactive mode - require service name
       if (!args.serviceName) {
         throw new OvrmndError({
           code: ErrorCode.PARAM_REQUIRED,
-          message: 'Service name required in JSON mode',
-          help: 'Provide service name as argument or use --pretty for interactive mode',
+          message: 'Service name required in non-interactive mode',
+          help: 'Provide service name as argument or use --interactive for prompts',
         })
       }
 
