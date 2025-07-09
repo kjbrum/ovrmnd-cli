@@ -72,12 +72,14 @@ export class DebugFormatter {
     statusText: string,
     headers?: Record<string, string>,
     body?: unknown,
+    responseTime?: number,
   ): void {
     if (!this.enabled) return
 
     const statusColor =
       status >= 200 && status < 300 ? chalk.green : chalk.red
-    this.debug('RESPONSE', statusColor(`${status} ${statusText}`))
+    const timeStr = responseTime ? ` (${responseTime}ms)` : ''
+    this.debug('RESPONSE', statusColor(`${status} ${statusText}${timeStr}`))
 
     if (headers && Object.keys(headers).length > 0) {
       process.stderr.write(

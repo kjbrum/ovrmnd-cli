@@ -4,9 +4,9 @@
 
 This document tracks the implementation progress of the Ovrmnd CLI project. It provides real-time visibility into completed work, current focus, and upcoming tasks.
 
-**Last Updated**: 2025-07-07
-**Current Phase**: Phase 4 - Completed
-**Overall Progress**: ~80%
+**Last Updated**: 2025-07-08
+**Current Phase**: Phase 5 - In Progress
+**Overall Progress**: ~85%
 
 ---
 
@@ -18,7 +18,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase 2: Core API Execution | 🟢 Completed | 100% | 2025-07-02 | 2025-07-03 |
 | Phase 3: CLI Usability & DX | 🟢 Completed | 100% | 2025-07-03 | 2025-07-04 |
 | Phase 4: Performance & Optimization | 🟢 Completed | 100% | 2025-07-04 | 2025-07-07 |
-| Phase 5: Advanced Features | 🔴 Not Started | 0% | - | - |
+| Phase 5: Advanced Features | 🟡 In Progress | 25% | 2025-07-08 | - |
 
 **Legend**: 🔴 Not Started | 🟡 In Progress | 🟢 Completed | ⏸️ Blocked
 
@@ -148,17 +148,17 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 ## Phase 5: Advanced Features & Shortcuts
 
 ### Tasks:
-- [ ] **T-01: Alias System**
-  - [ ] Alias parsing
-  - [ ] Alias resolution
-  - [ ] Argument merging
-  - [ ] Alias validation
+- [x] **T-01: Alias System**
+  - [x] Alias parsing
+  - [x] Alias resolution
+  - [x] Argument merging
+  - [x] Alias validation
 
-- [ ] **T-02: Test Command**
-  - [ ] Dry-run mode
-  - [ ] Test execution
-  - [ ] Connectivity validation
-  - [ ] Test output
+- ~~**T-02: Test Command**~~ (Skipped - redundant with call command)
+  - ~~Dry-run mode~~
+  - ~~Test execution~~
+  - ~~Connectivity validation~~
+  - ~~Test output~~
 
 - [ ] **T-03: Init Command**
   - [ ] Template generation
@@ -176,19 +176,21 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ## Current Focus
 
-**Phase**: 4 (Completed!)
-**Status**: Response Transformation implemented! Phase 4 is 100% complete:
-- Response Caching (T-01): ✅ Complete with flat-cache, TTL support, and debug logging
-- Cache Command (T-02): ✅ Complete with clear, stats, and list functionality
-- Response Transformation (T-03): ✅ Complete with field extraction, renaming, and nested paths
-  - Field extraction: Select specific fields from response
-  - Field renaming: Rename fields in the response
-  - Nested path support: Access fields like "user.profile.name"
-  - Array access: Extract from arrays with "[0]" syntax
-  - Transform pipeline: Chain multiple transformations
-  - Integration with cache: Transformed responses are cached
+**Phase**: 5 - Advanced Features & Shortcuts
+**Status**: In Progress (25% complete)
 
-**Ready to begin Phase 5: Advanced Features & Shortcuts**
+**Completed in Phase 5**:
+- Alias System (T-01): ✅ Complete - discovered it was already implemented!
+  - Alias parsing in YAML configurations
+  - Alias resolution to endpoints
+  - CLI parameter override of alias defaults
+  - Alias validation in config validator
+  - Full test coverage
+
+**Next Task**: Init Command (T-03)
+- Test command (T-02) has been skipped - functionality was redundant with call command
+- Response time tracking was preserved by adding it to debug mode in call command
+- Moving forward with Init command implementation
 
 ---
 
@@ -228,7 +230,7 @@ None currently identified.
 ## Metrics
 
 - **Total Tasks**: 53
-- **Completed Tasks**: 50
+- **Completed Tasks**: 54 (includes discovered completed tasks)
 - **In Progress Tasks**: 0
 - **Blocked Tasks**: 0
 
@@ -237,6 +239,20 @@ None currently identified.
 ## Change Log
 
 ### 2025-07-08
+- Phase 5 progressed (25% complete):
+  - Alias System (T-01) discovered to be already fully implemented:
+    - Complete alias parsing and resolution in call command
+    - Full parameter merging with CLI override support
+    - Alias validation in config validator with duplicate and reference checks
+    - Unit tests already in place in call.test.ts
+    - Manual testing confirms full functionality
+  - Test Command (T-02) reconsidered and removed:
+    - Initially implemented with skipCache option and response time tracking
+    - Removed after discussion - functionality was redundant with call command
+    - Response time tracking preserved and added to debug mode in call command
+    - Decision made to focus on more valuable features instead
+
+### 2025-07-08 (Earlier)
 - Maintenance and bug fixes:
   - Moved test YAML files from `.ovrmnd/` to `tests/fixtures/yaml/` to eliminate config discovery noise
     - Created dedicated test fixtures directory for validation test files

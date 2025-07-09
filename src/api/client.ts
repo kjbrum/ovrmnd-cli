@@ -345,6 +345,7 @@ export async function callEndpoint(
 
   // Execute request
   try {
+    const startTime = Date.now()
     const httpResponse = await executeRequest(
       {
         method: endpoint.method,
@@ -354,6 +355,12 @@ export async function callEndpoint(
       },
       debugFormatter,
     )
+    const responseTime = Date.now() - startTime
+
+    // Log response time in debug mode
+    if (debugFormatter?.isEnabled) {
+      debugFormatter.debug('TIMING', `Response time: ${responseTime}ms`)
+    }
 
     // Apply transformations if configured
     let transformedData = httpResponse.data
@@ -406,6 +413,7 @@ export async function callEndpoint(
         timestamp: Date.now(),
         statusCode: httpResponse.status,
         transformed: !!transformPipeline,
+        duration: responseTime,
       },
     }
   } catch (error) {

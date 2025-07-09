@@ -151,11 +151,11 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
    - Implement argument merging (CLI overrides alias defaults)
    - Add alias validation
 
-2. **T-02: Test Command**
-   - Implement dry-run mode
-   - Create test execution without caching
-   - Add connectivity validation
-   - Provide detailed test output
+2. ~~**T-02: Test Command**~~ (Skipped - functionality covered by call command with --debug)
+   - ~~Implement dry-run mode~~
+   - ~~Create test execution without caching~~
+   - ~~Add connectivity validation~~
+   - ~~Provide detailed test output~~
 
 3. **T-03: Init Command**
    - Create service template generation
