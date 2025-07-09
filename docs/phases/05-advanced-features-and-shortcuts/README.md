@@ -30,6 +30,10 @@ This phase adds convenience features that make the CLI more powerful and easier 
 - Include common authentication patterns
 - Create example endpoints
 - Set up .gitignore for security
+- **AI-powered configuration generation** (planned enhancement)
+  - Natural language prompts to generate configs
+  - Automatic API research and endpoint discovery
+  - See [AI Enhancement Plan](../../plans/ai-init-enhancement.md)
 
 ## Implementation Examples
 
@@ -64,6 +68,9 @@ ovrmnd test github.get-user --username=octocat
 
 # Initialize new service
 ovrmnd init slack-api
+
+# AI-powered initialization (planned enhancement)
+ovrmnd init shopify --prompt "Find Shopify REST API docs for products and orders"
 ```
 
 ## Success Criteria

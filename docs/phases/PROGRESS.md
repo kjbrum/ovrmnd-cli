@@ -165,6 +165,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [x] Authentication patterns  
   - [x] Example endpoints
   - [x] Interactive prompts for service configuration
+  - [ ] **AI-powered configuration generation** (planned enhancement - see [AI Enhancement Plan](../plans/ai-init-enhancement.md))
 
 - [ ] **T-04: Batch Operations**
   - [ ] Multiple API calls in single command
@@ -267,6 +268,12 @@ None currently identified.
     - Comprehensive unit tests with mocked filesystem and prompts
     - Integration tests covering all major functionality
     - Decision: Removed .gitignore and .env.example file creation - kept focused on core config generation
+  - Documented AI enhancement plan for init command:
+    - Created detailed plan in `docs/plans/ai-init-enhancement.md`
+    - Will allow natural language prompts to generate configs: `--prompt "Find Shopify API docs..."`
+    - Plans to integrate Claude Code SDK for API research and endpoint discovery
+    - Updated Phase 5 documentation to reference this planned enhancement
+    - No separate --ai flag needed - presence of --prompt will trigger AI mode
 
 ### 2025-07-08
 - Phase 5 progressed (25% complete):

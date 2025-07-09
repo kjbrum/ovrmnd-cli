@@ -4,6 +4,8 @@
 
 Create the `init` command to generate starter YAML configuration files with common patterns, helping users quickly set up new service integrations.
 
+> **Note**: An AI-powered enhancement is planned for this command that will allow users to generate configurations using natural language prompts. See the [AI Enhancement Plan](../../plans/ai-init-enhancement.md) for details.
+
 ## Requirements
 
 1. **Template Generation**
@@ -599,6 +601,7 @@ aliases:
 - [ ] Updates .gitignore with security entries
 - [ ] Provides helpful next steps
 - [ ] Templates follow best practices
+- [ ] Extensible design for future AI integration
 
 ## Common Issues
 
@@ -606,3 +609,21 @@ aliases:
 2. **Existing Files**: Clear overwrite behavior
 3. **Template Quality**: Useful, working examples
 4. **Path Resolution**: Cross-platform paths
+
+## Future Enhancements
+
+### AI-Powered Configuration Generation
+A planned enhancement will add the ability to generate configurations using AI:
+
+```bash
+# Example usage (planned)
+ovrmnd init shopify --prompt "Find the Shopify REST API docs for products and orders"
+```
+
+This will:
+- Use Claude Code SDK to research API documentation
+- Automatically discover endpoints and authentication methods
+- Generate a complete, working configuration
+- Require only `ANTHROPIC_API_KEY` environment variable
+
+See the [AI Enhancement Plan](../../plans/ai-init-enhancement.md) for implementation details.
