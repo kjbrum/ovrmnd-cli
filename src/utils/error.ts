@@ -39,6 +39,10 @@ export enum ErrorCode {
 
   // File system errors
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
+  FILE_ERROR = 'FILE_ERROR',
+
+  // User interaction errors
+  USER_CANCELLED = 'USER_CANCELLED',
 
   // Cache errors
   CACHE_READ_ERROR = 'CACHE_READ_ERROR',

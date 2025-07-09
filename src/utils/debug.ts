@@ -79,7 +79,10 @@ export class DebugFormatter {
     const statusColor =
       status >= 200 && status < 300 ? chalk.green : chalk.red
     const timeStr = responseTime ? ` (${responseTime}ms)` : ''
-    this.debug('RESPONSE', statusColor(`${status} ${statusText}${timeStr}`))
+    this.debug(
+      'RESPONSE',
+      statusColor(`${status} ${statusText}${timeStr}`),
+    )
 
     if (headers && Object.keys(headers).length > 0) {
       process.stderr.write(

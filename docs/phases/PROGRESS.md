@@ -4,9 +4,9 @@
 
 This document tracks the implementation progress of the Ovrmnd CLI project. It provides real-time visibility into completed work, current focus, and upcoming tasks.
 
-**Last Updated**: 2025-07-08
+**Last Updated**: 2025-07-09
 **Current Phase**: Phase 5 - In Progress
-**Overall Progress**: ~85%
+**Overall Progress**: ~93%
 
 ---
 
@@ -18,7 +18,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase 2: Core API Execution | 🟢 Completed | 100% | 2025-07-02 | 2025-07-03 |
 | Phase 3: CLI Usability & DX | 🟢 Completed | 100% | 2025-07-03 | 2025-07-04 |
 | Phase 4: Performance & Optimization | 🟢 Completed | 100% | 2025-07-04 | 2025-07-07 |
-| Phase 5: Advanced Features | 🟡 In Progress | 25% | 2025-07-08 | - |
+| Phase 5: Advanced Features | 🟡 In Progress | 75% | 2025-07-08 | - |
 
 **Legend**: 🔴 Not Started | 🟡 In Progress | 🟢 Completed | ⏸️ Blocked
 
@@ -160,11 +160,11 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - ~~Connectivity validation~~
   - ~~Test output~~
 
-- [ ] **T-03: Init Command**
-  - [ ] Template generation
-  - [ ] Authentication patterns
-  - [ ] Example endpoints
-  - [ ] .gitignore generation
+- [x] **T-03: Init Command**
+  - [x] Template generation
+  - [x] Authentication patterns  
+  - [x] Example endpoints
+  - [x] Interactive prompts for service configuration
 
 - [ ] **T-04: Batch Operations**
   - [ ] Multiple API calls in single command
@@ -177,7 +177,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 ## Current Focus
 
 **Phase**: 5 - Advanced Features & Shortcuts
-**Status**: In Progress (25% complete)
+**Status**: In Progress (75% complete)
 
 **Completed in Phase 5**:
 - Alias System (T-01): ✅ Complete - discovered it was already implemented!
@@ -186,11 +186,20 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - CLI parameter override of alias defaults
   - Alias validation in config validator
   - Full test coverage
+  
+- Init Command (T-03): ✅ Complete
+  - Interactive prompts for service configuration (name, URL, auth)
+  - REST API template with CRUD endpoints
+  - Bearer token and API key authentication patterns
+  - Example aliases and transforms
+  - JSON and pretty output modes
+  - Overwrite protection with --force flag
+  - Global/local directory support
+  - Custom output path support
+  - Comprehensive unit and integration tests
 
-**Next Task**: Init Command (T-03)
-- Test command (T-02) has been skipped - functionality was redundant with call command
-- Response time tracking was preserved by adding it to debug mode in call command
-- Moving forward with Init command implementation
+**Next Task**: Batch Operations (T-04)
+- Test command (T-02) was skipped - functionality was redundant with call command
 
 ---
 
@@ -220,23 +229,44 @@ None currently identified.
 
 ## Next Steps
 
-1. Begin Phase 5: Advanced Features & Shortcuts
-2. Implement alias system for endpoint shortcuts
-3. Create test command for connectivity validation
-4. Add init command for template generation
+1. Complete Phase 5: Batch Operations (T-04)
+   - Design batch operation syntax
+   - Implement parallel API execution
+   - Handle result aggregation
+   - Error handling for partial failures
+2. Consider additional features or improvements
+3. Prepare for production release
 
 ---
 
 ## Metrics
 
-- **Total Tasks**: 53
-- **Completed Tasks**: 54 (includes discovered completed tasks)
-- **In Progress Tasks**: 0
+- **Total Tasks**: 56
+- **Completed Tasks**: 51
+- **In Progress Tasks**: 1 (Batch Operations)
 - **Blocked Tasks**: 0
 
 ---
 
 ## Change Log
+
+### 2025-07-09
+- Phase 5 progressed (75% complete):
+  - Init Command (T-03) completed:
+    - Created InitCommand extending BaseCommand pattern
+    - Implemented interactive prompts using prompts package for service configuration
+    - REST template includes 5 CRUD endpoints (list, get, create, update, delete)
+    - Support for bearer token and API key authentication
+    - Example alias and transform configurations included in template
+    - Dual-mode output: JSON by default, --pretty for human-readable
+    - File overwrite protection with --force flag
+    - Support for --global flag to create in ~/.ovrmnd directory
+    - Custom output path support with --output option
+    - Helpful YAML comments and usage instructions in generated files
+    - Environment variable placeholders for authentication tokens
+    - Comprehensive unit tests with mocked filesystem and prompts
+    - Integration tests covering all major functionality
+    - Decision: Removed .gitignore and .env.example file creation - kept focused on core config generation
 
 ### 2025-07-08
 - Phase 5 progressed (25% complete):

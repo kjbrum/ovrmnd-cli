@@ -318,4 +318,18 @@ export class OutputFormatter {
 
     return lines.join('\n')
   }
+
+  highlight(text: string): string {
+    if (this.jsonMode) {
+      return text
+    }
+    return chalk.yellow(text)
+  }
+
+  code(text: string): string {
+    if (this.jsonMode) {
+      return text
+    }
+    return chalk.italic.cyan(text)
+  }
 }

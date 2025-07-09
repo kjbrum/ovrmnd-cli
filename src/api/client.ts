@@ -359,7 +359,10 @@ export async function callEndpoint(
 
     // Log response time in debug mode
     if (debugFormatter?.isEnabled) {
-      debugFormatter.debug('TIMING', `Response time: ${responseTime}ms`)
+      debugFormatter.debug(
+        'TIMING',
+        `Response time: ${responseTime}ms`,
+      )
     }
 
     // Apply transformations if configured
