@@ -1,6 +1,11 @@
 # Testing configuration for Ovrmnd CLI
 # This file should be kept up to date with all YAML features
 # Use: node dist/cli.js call testing.<endpoint>
+# 
+# Batch operations examples:
+# node dist/cli.js call testing.getUser --batch-json='[{"id":"1"},{"id":"2"},{"id":"3"}]'
+# node dist/cli.js call testing.getUser --batch-json='[{"id":"1"},{"id":"999"}]' --fail-fast
+# node dist/cli.js call testing.listPosts --batch-json='[{"_page":"1"},{"_page":"2"}]' --pretty
 
 serviceName: testing
 baseUrl: https://jsonplaceholder.typicode.com
@@ -91,6 +96,13 @@ endpoints:
       fields: ["id", "name", "email", "address.street", "address.city", "company.name"]
       rename:
         "company.name": "companyName"
+        
+  # Example endpoint ideal for batch operations
+  - name: getPhoto
+    method: GET
+    path: /photos/{id}
+    transform:
+      fields: ["id", "albumId", "title", "thumbnailUrl"]
 
 aliases:
   # Simple alias with pre-filled parameter

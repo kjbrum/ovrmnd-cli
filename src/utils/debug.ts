@@ -197,6 +197,22 @@ export class DebugFormatter {
   }
 
   /**
+   * Output info message
+   */
+  info(message: string): void {
+    if (!this.enabled) return
+    this.debug('INFO', message)
+  }
+
+  /**
+   * Output warning message
+   */
+  warning(message: string): void {
+    if (!this.enabled) return
+    this.debug('WARN', chalk.yellow(message))
+  }
+
+  /**
    * Format data for output
    */
   private formatData(data: unknown, indent: number = 2): string {

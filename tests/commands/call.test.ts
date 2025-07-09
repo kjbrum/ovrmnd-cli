@@ -18,10 +18,13 @@ const mockCallEndpoint =
   >
 
 // Mock console methods
-const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation()
 const mockConsoleError = jest
   .spyOn(console, 'error')
   .mockImplementation()
+// Mock process.stdout.write
+const mockStdoutWrite = jest
+  .spyOn(process.stdout, 'write')
+  .mockImplementation(() => true)
 // Mock process.exit to prevent actual exit
 const mockProcessExit = jest
   .spyOn(process, 'exit')
@@ -121,8 +124,9 @@ describe('CallCommand', () => {
           headers: {},
         },
       )
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        JSON.stringify({ id: 123, name: 'Test User' }, null, 2),
+      expect(mockStdoutWrite).toHaveBeenCalledWith(
+        JSON.stringify({ id: 123, name: 'Test User' }, null, 2) +
+          '\n',
       )
     })
 
@@ -147,11 +151,12 @@ describe('CallCommand', () => {
       })
 
       // In pretty mode, it should not output raw JSON
-      expect(mockConsoleLog).not.toHaveBeenCalledWith(
-        JSON.stringify({ id: 123, name: 'Test User' }, null, 2),
+      expect(mockStdoutWrite).not.toHaveBeenCalledWith(
+        JSON.stringify({ id: 123, name: 'Test User' }, null, 2) +
+          '\n',
       )
       // But should still output something
-      expect(mockConsoleLog).toHaveBeenCalled()
+      expect(mockStdoutWrite).toHaveBeenCalled()
     })
 
     it('should handle aliases', async () => {
@@ -299,7 +304,8 @@ describe('CallCommand', () => {
         }),
       ).rejects.toThrow('process.exit(1)')
 
-      expect(mockConsoleLog).toHaveBeenCalledWith(
+      // Error output goes to stderr, not stdout
+      expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining('Internal server error'),
       )
       expect(mockProcessExit).toHaveBeenCalledWith(1)
@@ -396,6 +402,398 @@ describe('CallCommand', () => {
     it('should handle empty array', () => {
       const result = command['parseKeyValueArray']([])
       expect(result).toEqual({})
+    })
+  })
+
+  describe('batch operations', () => {
+    beforeEach(() => {
+      mockLoadServiceConfig.mockResolvedValue(mockConfig)
+    })
+
+    it('should execute batch operations successfully', async () => {
+      const batchJson = JSON.stringify([
+        { id: '1' },
+        { id: '2' },
+        { id: '3' },
+      ])
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 1, name: 'User 1' },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 2, name: 'User 2' },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 3, name: 'User 3' },
+        })
+
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'testservice.getUser',
+        batchJson,
+        pretty: false,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
+
+      expect(mockCallEndpoint).toHaveBeenCalledTimes(3)
+      expect(mockCallEndpoint).toHaveBeenNthCalledWith(
+        1,
+        mockConfig,
+        mockConfig.endpoints[0],
+        expect.objectContaining({
+          path: { id: '1' },
+        }),
+        expect.any(Object),
+      )
+
+      const output = mockStdoutWrite.mock.calls[0]?.[0] as string
+      const parsed = JSON.parse(output)
+      expect(parsed).toHaveLength(3)
+      expect(parsed[0]).toEqual({
+        success: true,
+        data: { id: 1, name: 'User 1' },
+      })
+      expect(parsed[1]).toEqual({
+        success: true,
+        data: { id: 2, name: 'User 2' },
+      })
+      expect(parsed[2]).toEqual({
+        success: true,
+        data: { id: 3, name: 'User 3' },
+      })
+    })
+
+    it('should handle mixed success and failure in batch', async () => {
+      const batchJson = JSON.stringify([
+        { id: '1' },
+        { id: '999' }, // This will fail
+        { id: '3' },
+      ])
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 1, name: 'User 1' },
+        })
+        .mockResolvedValueOnce({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 3, name: 'User 3' },
+        })
+
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson,
+          pretty: false,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      expect(mockCallEndpoint).toHaveBeenCalledTimes(3)
+
+      const output = mockStdoutWrite.mock.calls[0]?.[0] as string
+      const parsed = JSON.parse(output)
+      expect(parsed).toHaveLength(3)
+      expect(parsed[0]).toEqual({
+        success: true,
+        data: { id: 1, name: 'User 1' },
+      })
+      expect(parsed[1]).toEqual({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' },
+      })
+      expect(parsed[2]).toEqual({
+        success: true,
+        data: { id: 3, name: 'User 3' },
+      })
+    })
+
+    it('should stop on first error with fail-fast mode', async () => {
+      const batchJson = JSON.stringify([
+        { id: '1' },
+        { id: '999' }, // This will fail
+        { id: '3' }, // This should not be called
+      ])
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 1, name: 'User 1' },
+        })
+        .mockResolvedValueOnce({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        })
+
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson,
+          failFast: true,
+          pretty: false,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      // Should only call twice, not three times
+      expect(mockCallEndpoint).toHaveBeenCalledTimes(2)
+
+      const output = mockStdoutWrite.mock.calls[0]?.[0] as string
+      const parsed = JSON.parse(output)
+      expect(parsed).toHaveLength(2) // Only 2 results, not 3
+    })
+
+    it('should merge CLI parameters with batch parameters', async () => {
+      const batchJson = JSON.stringify([
+        { id: '1' },
+        { id: '2', includeDetails: true },
+      ])
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({ success: true, data: { id: 1 } })
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 2, details: {} },
+        })
+
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'testservice.getUser',
+        batchJson,
+        pretty: false,
+        path: [],
+        query: ['format=json'], // This should apply to all requests
+        header: [],
+        body: [],
+      })
+
+      expect(mockCallEndpoint).toHaveBeenCalledTimes(2)
+
+      // Check that CLI params were merged
+      expect(mockCallEndpoint).toHaveBeenNthCalledWith(
+        1,
+        mockConfig,
+        mockConfig.endpoints[0],
+        expect.objectContaining({
+          path: { id: '1' },
+          query: { format: 'json' },
+        }),
+        expect.any(Object),
+      )
+
+      expect(mockCallEndpoint).toHaveBeenNthCalledWith(
+        2,
+        mockConfig,
+        mockConfig.endpoints[0],
+        expect.objectContaining({
+          path: { id: '2' },
+          query: { format: 'json', includeDetails: 'true' },
+        }),
+        expect.any(Object),
+      )
+    })
+
+    it('should format batch results in pretty mode', async () => {
+      const batchJson = JSON.stringify([{ id: '1' }, { id: '999' }])
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({
+          success: true,
+          data: { id: 1, name: 'User 1' },
+        })
+        .mockResolvedValueOnce({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        })
+
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson,
+          pretty: true,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      const output = mockStdoutWrite.mock.calls
+        .map(call => call[0])
+        .join('')
+
+      // Check for formatted output
+      expect(output).toContain('=== Request 1/2 ===')
+      expect(output).toContain('✓ Success')
+      expect(output).toContain('User 1')
+      expect(output).toContain('=== Request 2/2 ===')
+      expect(output).toContain('✗ Failed')
+      expect(output).toContain('User not found')
+      expect(output).toContain('Summary: 1 succeeded, 1 failed')
+    })
+
+    it('should reject invalid batch JSON', async () => {
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson: 'not valid json',
+          pretty: false,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid batch JSON format'),
+      )
+    })
+
+    it('should reject non-array batch JSON', async () => {
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson: '{"id": "1"}', // Object, not array
+          pretty: false,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid batch JSON format'),
+      )
+    })
+
+    it('should reject empty batch array', async () => {
+      await expect(
+        command.handler({
+          _: [],
+          $0: 'ovrmnd',
+          target: 'testservice.getUser',
+          batchJson: '[]',
+          pretty: false,
+          path: [],
+          query: [],
+          header: [],
+          body: [],
+        }),
+      ).rejects.toThrow('process.exit(1)')
+
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Batch JSON array is empty'),
+      )
+    })
+
+    it('should show progress in debug mode', async () => {
+      const batchJson = JSON.stringify([{ id: '1' }, { id: '2' }])
+      const stderrSpy = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation()
+
+      mockCallEndpoint
+        .mockResolvedValueOnce({ success: true, data: { id: 1 } })
+        .mockResolvedValueOnce({ success: true, data: { id: 2 } })
+
+      await command.handler({
+        _: [],
+        $0: 'ovrmnd',
+        target: 'testservice.getUser',
+        batchJson,
+        pretty: false,
+        debug: true,
+        path: [],
+        query: [],
+        header: [],
+        body: [],
+      })
+
+      const stderrOutput = stderrSpy.mock.calls
+        .map(call => call[0])
+        .join('')
+      expect(stderrOutput).toContain(
+        'Starting batch operation with 2 requests',
+      )
+      expect(stderrOutput).toContain('Executing request 1 of 2...')
+      expect(stderrOutput).toContain('Executing request 2 of 2...')
+
+      stderrSpy.mockRestore()
+    })
+  })
+
+  describe('convertToRawParams', () => {
+    it('should convert valid values to RawParams', () => {
+      const result = command['convertToRawParams']({
+        string: 'test',
+        number: 42,
+        boolean: true,
+        array: ['a', 'b'],
+        null: null,
+        undefined: undefined,
+        object: { nested: 'value' },
+      })
+
+      expect(result).toEqual({
+        string: 'test',
+        number: 42,
+        boolean: true,
+        array: ['a', 'b'],
+        object: '[object Object]',
+      })
+    })
+  })
+
+  describe('mergeParams', () => {
+    it('should merge multiple param sets with correct precedence', () => {
+      const params1 = { a: 'first', b: 'first', c: 'first' }
+      const params2 = { b: 'second', c: 'second', d: 'second' }
+      const params3 = { c: 'third', e: 'third' }
+
+      const result = command['mergeParams'](
+        params1 as any,
+        params2 as any,
+        params3 as any,
+      )
+
+      expect(result).toEqual({
+        a: 'first',
+        b: 'second',
+        c: 'third',
+        d: 'second',
+        e: 'third',
+      })
     })
   })
 })

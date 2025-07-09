@@ -512,3 +512,101 @@ transform: [
 
 ### Key Learning
 When a flag is being used for multiple purposes (output formatting AND behavior control), it's better to split into separate flags with clear, single responsibilities. This makes the CLI more intuitive and the code more maintainable.
+
+## Batch Operations Implementation
+
+### Design Decisions
+
+1. **Sequential vs Parallel Execution**:
+   - Implemented sequential execution rather than parallel
+   - Avoids rate limiting issues with APIs
+   - Simpler error handling and progress tracking
+   - Could add parallel option in future if needed
+
+2. **Batch JSON Format**:
+   - Array of parameter objects: `[{"id": "1"}, {"id": "2"}]`
+   - Each object represents parameters for one API call
+   - Empty objects allowed (uses defaults/aliases)
+
+3. **Parameter Merging Order**:
+   - Alias parameters < Batch parameters < CLI parameters
+   - CLI parameters override everything (apply to all requests)
+   - Allows flexible batch operations with common overrides
+
+4. **Error Handling Modes**:
+   - Default: Continue on error, collect all results
+   - `--fail-fast`: Stop on first error
+   - Exit code 1 if any request fails
+
+5. **Output Formatting**:
+   - JSON mode: Array of results with success/error status
+   - Pretty mode: Individual results with summary statistics
+   - Progress indication in debug mode only
+
+### Implementation Patterns
+
+```bash
+# Basic batch operation
+ovrmnd call api.getUser --batch-json='[{"id":"1"},{"id":"2"},{"id":"3"}]'
+
+# With fail-fast
+ovrmnd call api.getUser --batch-json='[{"id":"1"},{"id":"999"}]' --fail-fast
+
+# With CLI parameter override
+ovrmnd call api.getUser --batch-json='[{"id":"1"},{"id":"2"}]' --query format=json
+
+# With alias and batch override
+ovrmnd call api.me --batch-json='[{},{"id":"5"}]'  # First uses alias default, second overrides
+```
+
+### TypeScript Challenges
+
+1. **JSON Parsing Type Safety**:
+   - `JSON.parse()` returns `any`, requiring explicit type assertion
+   - Cast to `unknown` first, then validate with Array.isArray()
+   - Finally cast to `Record<string, unknown>[]`
+
+2. **Parameter Type Conversion**:
+   - Batch JSON can contain any types, but RawParams expects specific types
+   - Created `convertToRawParams()` helper to safely convert
+   - Handles null/undefined by converting to string
+
+3. **String Concatenation**:
+   - ESLint prefers template literals over string concatenation
+   - Changed all `+ '\n'` to template literals
+
+### Testing Strategy
+
+1. **Unit Tests**:
+   - Mock `callEndpoint` to control responses
+   - Test parameter merging precedence
+   - Verify error handling modes
+   - Check output formatting
+
+2. **Integration Tests**:
+   - Use real JSONPlaceholder API
+   - Test actual network requests
+   - Verify batch execution flow
+   - Check progress output in debug mode
+
+### Performance Considerations
+
+- Sequential execution prevents overwhelming APIs
+- No connection pooling or rate limiting needed
+- Progress indication helps with long-running batches
+- Could add `--parallel` flag with concurrency limit in future
+
+### Error Handling
+
+- Each request wrapped in try/catch
+- Errors converted to ApiResponse format
+- Original error details preserved
+- Exit code reflects overall success/failure
+
+### Future Enhancements
+
+- Parallel execution with concurrency control
+- Batch file input (JSON file instead of CLI arg)
+- Progress bar for large batches
+- Retry logic for failed requests
+- Result filtering/transformation
