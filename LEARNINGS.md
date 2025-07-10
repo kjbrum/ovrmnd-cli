@@ -236,7 +236,7 @@ const response = await callEndpoint(config, endpoint, params, debugFormatter)
 
 - `CONFIG`: Configuration loading and resolution
 - `REQUEST`: HTTP request details
-- `RESPONSE`: HTTP response details  
+- `RESPONSE`: HTTP response details
 - `PARAMS`: Parameter mapping
 - `ENV`: Environment variable resolution
 - `CACHE`: Cache hit/miss information
@@ -257,7 +257,7 @@ Debug output testing uses process.stderr.write mocking to capture and verify out
 
 1. **flat-cache Library**: Used flat-cache for persistent file-based caching. It's simple, reliable, and handles JSON serialization automatically.
 
-2. **Cache Key Generation**: 
+2. **Cache Key Generation**:
    - Uses SHA256 hash of service name, endpoint name, URL, and non-sensitive headers
    - Auth headers (Authorization, X-API-Key, Cookie) are excluded from cache key
    - Headers are normalized to lowercase and sorted for consistent hashing
@@ -390,7 +390,7 @@ transform: [
 
 ### TypeScript Challenges
 
-1. **Array Type Safety**: 
+1. **Array Type Safety**:
    - ESLint complained about array map returning `any`
    - Fixed by adding type annotation to parameter: `(item: unknown)`
 
@@ -404,7 +404,7 @@ transform: [
 
 ### Testing Strategy
 
-1. **Unit Tests**: 
+1. **Unit Tests**:
    - Test each transformer method in isolation
    - Cover edge cases: undefined values, missing fields, invalid paths
    - Test array access with out-of-bounds indices
@@ -777,3 +777,48 @@ const extractJSON = (text: string): unknown => {
 - File is simple markdown with just the prompt content (no extra sections)
 - Placeholders `{serviceName}` and `{prompt}` are replaced at runtime
 - Decision: No fallback prompt because if the file is missing, it's a bigger issue that should be fixed
+
+## AI Configuration Security Enhancements
+
+### Model Selection
+- Changed default model from `claude-3-5-sonnet-20241022` to `claude-3-5-haiku-20241022`
+- Haiku is faster and more cost-effective for configuration generation
+- Still produces high-quality configurations for this use case
+- Users can override with `AI_MODEL` env var if they need a more capable model
+
+### Environment Variable Configuration
+- Updated to use generic `AI_` prefix instead of `ANTHROPIC_` for future flexibility
+- Added support for three environment variables:
+  * `AI_MODEL` - Override the AI model (default: claude-3-5-haiku-20241022)
+  * `AI_MAX_TOKENS` - Override max response tokens (no default, uses SDK default)
+  * `AI_TEMPERATURE` - Override temperature (default: 0 for consistency)
+- Validated at construction time with helpful error messages
+- max_tokens only passed to SDK if explicitly set by user
+
+### Security Guidelines
+- Enhanced system prompt with explicit security guidelines:
+  * Only research official API documentation websites
+  * Focus on trusted domains (docs.*, api.*, developer.*, *.dev)
+  * No user-generated content or forums
+  * No executable code in configurations
+  * All sensitive values must use ${ENV_VAR_NAME} format
+- Added note about including documentation URLs in prompts for best results
+
+### Enhanced Validation
+- Added `performSecurityValidation()` method to check:
+  * Base URLs must use HTTPS (not HTTP)
+  * Authentication tokens must use ${ENV_VAR} format
+  * No hardcoded secrets in headers (checks for auth/key/token headers)
+- Validation happens after schema validation, before returning config
+- Clear error messages guide users to fix security issues
+
+### TypeScript Considerations
+- Used `Anthropic.MessageCreateParamsNonStreaming` type for clarity
+- Had to cast response to `Anthropic.Message` due to union type
+- max_tokens is required by the type, so we default to 4096 if not specified
+
+### Testing Approach
+- Added tests for all environment variable configurations
+- Added tests for security validation (HTTP URLs, hardcoded tokens)
+- Tests verify that environment variables are properly used in API calls
+- All existing tests updated to expect new default model and max_tokens

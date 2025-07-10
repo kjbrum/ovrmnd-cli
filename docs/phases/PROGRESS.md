@@ -4,7 +4,7 @@
 
 This document tracks the implementation progress of the Ovrmnd CLI project. It provides real-time visibility into completed work, current focus, and upcoming tasks.
 
-**Last Updated**: 2025-07-09
+**Last Updated**: 2025-07-10
 **Current Phase**: Phase 5 - In Progress
 **Overall Progress**: ~96%
 
@@ -162,7 +162,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 - [x] **T-03: Init Command**
   - [x] Template generation
-  - [x] Authentication patterns  
+  - [x] Authentication patterns
   - [x] Example endpoints
   - [x] Interactive prompts for service configuration
 
@@ -201,7 +201,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - CLI parameter override of alias defaults
   - Alias validation in config validator
   - Full test coverage
-  
+
 - Init Command (T-03): ✅ Complete
   - Interactive prompts for service configuration (name, URL, auth)
   - REST API template with CRUD endpoints
@@ -236,15 +236,26 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
     - System prompt for API research and config generation
     - JSON extraction and validation from AI responses
     - Error handling for API failures and invalid configs
-  - Uses Claude 3.5 Sonnet model for optimal performance
+    - Enhanced security validation (HTTPS URLs, env var tokens, no hardcoded secrets)
+  - Uses Claude 3.5 Haiku model by default (faster and more cost-effective)
+  - Environment variable configuration:
+    - `ANTHROPIC_API_KEY` required for API access
+    - `AI_MODEL` to override default model
+    - `AI_MAX_TOKENS` to set max response tokens
+    - `AI_TEMPERATURE` to control creativity (default: 0)
+  - Security enhancements:
+    - System prompt includes security guidelines
+    - Validates base URLs use HTTPS
+    - Ensures auth tokens use ${ENV_VAR} format
+    - Checks for hardcoded secrets in headers
   - Validates generated configs with existing schema validation
-  - Environment variable support: ANTHROPIC_API_KEY required
   - Comprehensive unit tests with mocked Anthropic SDK
   - Integration tests that skip when no real API key available
   - Updated documentation in README.md and CLAUDE.md
+  - Help text includes tip about providing documentation URLs
   - Example usage: `ovrmnd init shopify --prompt "Find Shopify API docs for products"`
 
-**Next Tasks**: 
+**Next Tasks**:
 1. Parallel Batch Execution (T-06) - Enhancement to existing batch operations
 
 - Test command (T-02) was skipped - functionality was redundant with call command
@@ -298,12 +309,34 @@ None currently identified.
 
 ## Change Log
 
+### 2025-07-10
+- Phase 5 - AI Configuration Enhancements:
+  - Enhanced AI-Powered Configuration Generation (T-05):
+    - Changed default model from Claude 3.5 Sonnet to Claude 3.5 Haiku (faster, more cost-effective)
+    - Added environment variable configuration support:
+      - `AI_MODEL` - Override the AI model (default: claude-3-5-haiku-20241022)
+      - `AI_MAX_TOKENS` - Override max response tokens (uses SDK default if not set)
+      - `AI_TEMPERATURE` - Override temperature for creativity (default: 0)
+    - Added security enhancements:
+      - System prompt includes explicit security guidelines
+      - Only research official API documentation websites
+      - Focus on trusted domains (docs.*, api.*, developer.*, *.dev)
+      - No executable code or scripts in configurations
+    - Enhanced validation:
+      - Base URLs must use HTTPS (not HTTP)
+      - Authentication tokens must use ${ENV_VAR} format
+      - No hardcoded secrets allowed in endpoint headers
+    - Updated init command help text to mention including documentation URLs
+    - Added comprehensive tests for all new functionality
+    - Updated README.md with configuration options
+    - Updated LEARNINGS.md with implementation decisions
+
 ### 2025-07-09 (Evening)
 - Phase 5 progressed (90% complete):
   - AI-Powered Configuration Generation (T-05) completed:
     - Installed @anthropic-ai/sdk dependency
     - Created AIConfigGenerator service class in src/services/
-    - Integrated Claude 3.5 Sonnet for intelligent config generation
+    - Integrated Claude AI for intelligent config generation
     - Added --prompt flag to init command for natural language input
     - System prompt guides AI to research APIs and generate valid configs
     - Automatic JSON extraction and validation from AI responses
@@ -313,13 +346,12 @@ None currently identified.
     - Integration tests that gracefully skip without real API key
     - Updated all documentation (README.md, CLAUDE.md)
     - Example: `ovrmnd init shopify --prompt "Find Shopify REST API docs"`
-    - All linting, formatting, and type checking passes
 
 ### 2025-07-09 (Later)
 - Phase 5 progressed (90% complete):
   - Batch Operations (T-04) completed:
     - Implemented --batch-json flag for call command
-    - Added batch JSON parsing and validation 
+    - Added batch JSON parsing and validation
     - Created batch execution logic with parameter merging (alias < batch < CLI)
     - Implemented error handling modes (continue vs fail-fast)
     - Created dual output formatting:
@@ -329,7 +361,6 @@ None currently identified.
     - Created comprehensive unit tests in call.test.ts
     - Created integration tests in batch-operations.test.ts
     - Updated testing.yaml with batch operation examples
-    - All linting and type checking passes
     - Decision: Implemented sequential execution rather than parallel for simplicity and to avoid rate limiting issues
 
 ### 2025-07-09
@@ -528,8 +559,6 @@ None currently identified.
     - Error formatting in both modes
     - Clean stdout/stderr separation for piping and scripting
     - All logs go to stderr, data goes to stdout
-  - All tests passing (80+ tests)
-  - Linting and type checking clean
   - Standardized Error Output (T-06):
     - Defined JsonError schema with error details, request/response context
     - Error transformation in OutputFormatter.formatError()

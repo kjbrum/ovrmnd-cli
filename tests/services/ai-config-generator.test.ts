@@ -33,6 +33,45 @@ describe('AIConfigGenerator', () => {
 
       expect(Anthropic).toHaveBeenCalledWith({ apiKey: mockApiKey })
     })
+
+    it('should use custom model from environment variable', () => {
+      process.env['AI_MODEL'] = 'claude-3-5-sonnet-20241022'
+      
+      new AIConfigGenerator()
+      
+      // Model should be set but we can't directly access private property
+      // Will be tested in generateConfig tests
+      expect(Anthropic).toHaveBeenCalledWith({ apiKey: mockApiKey })
+    })
+
+    it('should throw error for invalid AI_MAX_TOKENS', () => {
+      process.env['AI_MAX_TOKENS'] = 'invalid'
+
+      expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
+      expect(() => new AIConfigGenerator()).toThrow(
+        'AI_MAX_TOKENS must be a positive integer',
+      )
+
+      process.env['AI_MAX_TOKENS'] = '-100'
+      expect(() => new AIConfigGenerator()).toThrow(
+        'AI_MAX_TOKENS must be a positive integer',
+      )
+    })
+
+    it('should throw error for invalid AI_TEMPERATURE', () => {
+      process.env['AI_TEMPERATURE'] = 'invalid'
+
+      expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
+      expect(() => new AIConfigGenerator()).toThrow(
+        'AI_TEMPERATURE must be a number between 0 and 1',
+      )
+
+      process.env['AI_TEMPERATURE'] = '2'
+      expect(() => new AIConfigGenerator()).toThrow(
+        'AI_TEMPERATURE must be a number between 0 and 1',
+      )
+    })
+
   })
 
   describe('generateConfig', () => {
@@ -93,8 +132,7 @@ describe('AIConfigGenerator', () => {
 
       expect(result).toEqual(mockConfig)
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
+        model: 'claude-3-5-haiku-20241022',
         temperature: 0,
         system: expect.stringContaining('GitHub API'),
         messages: [
@@ -104,6 +142,8 @@ describe('AIConfigGenerator', () => {
               'Generate the ServiceConfig JSON based on the requirements above.',
           },
         ],
+        stream: false,
+        max_tokens: 4096,
       })
     })
 
@@ -230,6 +270,45 @@ describe('AIConfigGenerator', () => {
       ).rejects.toThrow('Failed to generate config: Network error')
     })
 
+    it('should use environment variables for model configuration', async () => {
+      process.env['AI_MODEL'] = 'claude-3-opus-20240229'
+      process.env['AI_MAX_TOKENS'] = '2000'
+      process.env['AI_TEMPERATURE'] = '0.5'
+
+      // Create new generator with env vars set
+      generator = new AIConfigGenerator()
+
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              serviceName: 'test',
+              baseUrl: 'https://api.test.com',
+              endpoints: [
+                {
+                  name: 'list',
+                  method: 'GET',
+                  path: '/items',
+                },
+              ],
+            }),
+          },
+        ],
+      })
+
+      await generator.generateConfig('test', 'Create config')
+
+      expect(mockCreate).toHaveBeenCalledWith({
+        model: 'claude-3-opus-20240229',
+        max_tokens: 2000,
+        temperature: 0.5,
+        system: expect.any(String),
+        messages: expect.any(Array),
+        stream: false,
+      })
+    })
+
     it('should include service name and prompt in system message', async () => {
       mockCreate.mockResolvedValue({
         content: [
@@ -256,22 +335,112 @@ describe('AIConfigGenerator', () => {
       )
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
+        model: 'claude-3-5-haiku-20241022',
         temperature: 0,
         system: expect.stringContaining('Service name: shopify'),
         messages: expect.any(Array),
+        stream: false,
+        max_tokens: 4096,
       })
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
+        model: 'claude-3-5-haiku-20241022',
         temperature: 0,
         system: expect.stringContaining(
           'User request: Find Shopify REST API docs for products',
         ),
         messages: expect.any(Array),
+        stream: false,
+        max_tokens: 4096,
       })
+    })
+
+    it('should reject configs with HTTP base URLs', async () => {
+      const insecureConfig = {
+        serviceName: 'test',
+        baseUrl: 'http://api.test.com', // HTTP instead of HTTPS
+        endpoints: [
+          {
+            name: 'list',
+            method: 'GET',
+            path: '/items',
+          },
+        ],
+      }
+
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(insecureConfig),
+          },
+        ],
+      })
+
+      await expect(
+        generator.generateConfig('test', 'Create config'),
+      ).rejects.toThrow('Base URL must use HTTPS for security')
+    })
+
+    it('should reject configs with hardcoded auth tokens', async () => {
+      const badConfig = {
+        serviceName: 'test',
+        baseUrl: 'https://api.test.com',
+        authentication: {
+          type: 'bearer',
+          token: 'sk-12345abcdef', // Hardcoded instead of ${ENV_VAR}
+        },
+        endpoints: [
+          {
+            name: 'list',
+            method: 'GET',
+            path: '/items',
+          },
+        ],
+      }
+
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(badConfig),
+          },
+        ],
+      })
+
+      await expect(
+        generator.generateConfig('test', 'Create config'),
+      ).rejects.toThrow('Authentication token must use environment variable format')
+    })
+
+    it('should reject configs with hardcoded secrets in headers', async () => {
+      const badConfig = {
+        serviceName: 'test',
+        baseUrl: 'https://api.test.com',
+        endpoints: [
+          {
+            name: 'list',
+            method: 'GET',
+            path: '/items',
+            headers: {
+              'X-API-Key': 'secret-key-123', // Hardcoded secret
+            },
+          },
+        ],
+      }
+
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(badConfig),
+          },
+        ],
+      })
+
+      await expect(
+        generator.generateConfig('test', 'Create config'),
+      ).rejects.toThrow('Potential hardcoded secret in endpoint "list" headers')
     })
   })
 })

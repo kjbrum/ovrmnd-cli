@@ -83,7 +83,7 @@ export class InitCommand extends BaseCommand<InitArgs> {
       .option('prompt', {
         alias: 'p',
         describe:
-          'Natural language prompt for AI-powered config generation',
+          'Natural language prompt for AI-powered config generation. Include API documentation URLs for best results',
         type: 'string',
       })
       .example(
@@ -105,6 +105,10 @@ export class InitCommand extends BaseCommand<InitArgs> {
       .example(
         '$0 init github --prompt "Create config for GitHub API repo management"',
         'AI-powered GitHub config generation',
+      )
+      .example(
+        '$0 init stripe --prompt "Create config using https://stripe.com/docs/api"',
+        'AI generation with specific docs URL',
       ) as unknown as Argv<InitArgs>
   }
 

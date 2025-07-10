@@ -169,9 +169,11 @@ The init command supports AI-powered configuration generation using the Claude A
 
 **Implementation Details**:
 - Service class: `src/services/ai-config-generator.ts`
-- Uses Anthropic SDK with Claude 3.5 Sonnet model
+- Uses Anthropic SDK with Claude 3.5 Haiku model by default
 - Requires `ANTHROPIC_API_KEY` environment variable
+- Configurable via `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TEMPERATURE` env vars
 - Validates generated configs using existing schema validation
+- Enhanced security validation for HTTPS URLs and proper token formats
 
 **Usage**:
 ```bash
@@ -254,3 +256,7 @@ This command will:
 ### Test Maintenance
 
 - **Important**: Ensure the `.claude/commands/run-tests.md` command is kept up to date any time new functionality is added that needs to be tested
+
+## Memories and Insights
+
+- When updating documentation, you don't need to include things like "All tests passing (80+ tests)" or "All linting and type checking passes". It's just assumed that everything is passing and formatted as it should be

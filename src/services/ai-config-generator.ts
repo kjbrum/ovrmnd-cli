@@ -8,6 +8,9 @@ import * as path from 'path'
 export class AIConfigGenerator {
   private client: Anthropic
   private systemPromptCache: string | null = null
+  private model: string
+  private maxTokens: number | undefined
+  private temperature: number
 
   constructor() {
     const apiKey = process.env['ANTHROPIC_API_KEY']
@@ -17,6 +20,41 @@ export class AIConfigGenerator {
         message:
           'ANTHROPIC_API_KEY environment variable is required for AI generation',
         help: 'Set your API key: export ANTHROPIC_API_KEY="your-api-key"',
+      })
+    }
+
+    // Read configuration from environment variables
+    this.model =
+      process.env['AI_MODEL'] ?? 'claude-3-5-haiku-20241022'
+    this.maxTokens = process.env['AI_MAX_TOKENS']
+      ? parseInt(process.env['AI_MAX_TOKENS'], 10)
+      : undefined
+    this.temperature = process.env['AI_TEMPERATURE']
+      ? parseFloat(process.env['AI_TEMPERATURE'])
+      : 0
+
+    // Validate configuration
+    if (
+      this.maxTokens !== undefined &&
+      (isNaN(this.maxTokens) || this.maxTokens <= 0)
+    ) {
+      throw new OvrmndError({
+        code: ErrorCode.CONFIG_INVALID,
+        message: 'AI_MAX_TOKENS must be a positive integer',
+        help: 'Set a valid value: export AI_MAX_TOKENS="4000"',
+      })
+    }
+
+    if (
+      isNaN(this.temperature) ||
+      this.temperature < 0 ||
+      this.temperature > 1
+    ) {
+      throw new OvrmndError({
+        code: ErrorCode.CONFIG_INVALID,
+        message:
+          'AI_TEMPERATURE must be a number between 0 and 1',
+        help: 'Set a valid value: export AI_TEMPERATURE="0"',
       })
     }
 
@@ -33,16 +71,16 @@ export class AIConfigGenerator {
       '..',
       '..',
       'docs',
-      'ai-config-prompt.md'
+      'ai-config-prompt.md',
     )
-    
+
     try {
       const content = await fs.readFile(promptPath, 'utf-8')
-      
+
       // Skip the markdown title and get the prompt content
       const lines = content.split('\n')
       const promptContent = lines.slice(2).join('\n').trim()
-      
+
       this.systemPromptCache = promptContent
       return promptContent
     } catch (error) {
@@ -55,33 +93,38 @@ export class AIConfigGenerator {
     }
   }
 
-
   async generateConfig(
     serviceName: string,
     prompt: string,
   ): Promise<ServiceConfig> {
     // Load the system prompt template
     const promptTemplate = await this.loadSystemPrompt()
-    
+
     // Replace placeholders with actual values
     const systemPrompt = promptTemplate
       .replace('{serviceName}', serviceName)
       .replace('{prompt}', prompt)
 
     try {
-      const response = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
-        temperature: 0,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content:
-              'Generate the ServiceConfig JSON based on the requirements above.',
-          },
-        ],
-      })
+      const messageParams: Anthropic.MessageCreateParamsNonStreaming =
+        {
+          model: this.model,
+          temperature: this.temperature,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content:
+                'Generate the ServiceConfig JSON based on the requirements above.',
+            },
+          ],
+          stream: false,
+          max_tokens: this.maxTokens ?? 4096, // Default to 4096 if not specified
+        }
+
+      const response = (await this.client.messages.create(
+        messageParams,
+      )) as Anthropic.Message
 
       // Extract JSON from the response
       const content = response.content[0]
@@ -138,7 +181,15 @@ export class AIConfigGenerator {
   private validateConfig(config: unknown): ServiceConfig {
     try {
       // Use the existing service config validation
-      return validateServiceConfig(config, 'AI-generated')
+      const validatedConfig = validateServiceConfig(
+        config,
+        'AI-generated',
+      )
+
+      // Additional security validation
+      this.performSecurityValidation(validatedConfig)
+
+      return validatedConfig
     } catch (error) {
       if (
         error instanceof OvrmndError &&
@@ -152,6 +203,54 @@ export class AIConfigGenerator {
         })
       }
       throw error
+    }
+  }
+
+  private performSecurityValidation(config: ServiceConfig): void {
+    // Validate baseUrl uses HTTPS
+    if (!config.baseUrl.startsWith('https://')) {
+      throw new OvrmndError({
+        code: ErrorCode.CONFIG_INVALID,
+        message: 'Base URL must use HTTPS for security',
+        details: `Found: ${config.baseUrl}`,
+        help: 'Update the base URL to use https:// instead of http://',
+      })
+    }
+
+    // Validate authentication token format
+    if (config.authentication?.token) {
+      const envVarPattern = /^\$\{[A-Z_][A-Z0-9_]*\}$/
+      if (!envVarPattern.test(config.authentication.token)) {
+        throw new OvrmndError({
+          code: ErrorCode.CONFIG_INVALID,
+          message:
+            'Authentication token must use environment variable format',
+          details: `Found: ${config.authentication.token}`,
+          help: 'Use format like ${API_KEY} or ${GITHUB_TOKEN}',
+        })
+      }
+    }
+
+    // Check for hardcoded secrets in headers
+    for (const endpoint of config.endpoints) {
+      if (endpoint.headers) {
+        for (const [key, value] of Object.entries(endpoint.headers)) {
+          if (
+            key.toLowerCase().includes('auth') ||
+            key.toLowerCase().includes('key') ||
+            key.toLowerCase().includes('token')
+          ) {
+            if (!value.includes('${')) {
+              throw new OvrmndError({
+                code: ErrorCode.CONFIG_INVALID,
+                message: `Potential hardcoded secret in endpoint "${endpoint.name}" headers`,
+                details: `Header "${key}" appears to contain a hardcoded value`,
+                help: 'Use environment variables for sensitive headers',
+              })
+            }
+          }
+        }
+      }
     }
   }
 }

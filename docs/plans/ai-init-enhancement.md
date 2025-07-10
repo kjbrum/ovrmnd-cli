@@ -63,13 +63,13 @@ export class AIConfigGenerator {
 
   async generateConfig(serviceName: string, prompt: string): Promise<ServiceConfig> {
     const systemPrompt = `You are helping generate an Ovrmnd CLI configuration file for a REST API service.
-    
+
     Based on the user's prompt, you should:
     1. Research the API documentation (via web search if needed)
     2. Identify the most important/common endpoints
     3. Determine the authentication method (bearer token, API key, or none)
     4. Generate a complete ServiceConfig object in JSON format
-    
+
     The config should follow this TypeScript interface:
     interface ServiceConfig {
       serviceName: string
@@ -97,14 +97,14 @@ export class AIConfigGenerator {
         args?: Record<string, unknown>
       }>
     }
-    
+
     Service name: ${serviceName}
     User request: ${prompt}`
 
     const messages = []
     for await (const message of query({
       prompt: systemPrompt,
-      options: { 
+      options: {
         maxTurns: 3,
         model: 'claude-3-opus-20240229'
       }
@@ -156,7 +156,7 @@ handler = async (args: ArgumentsCamelCase<InitArgs>): Promise<void> => {
       // Generate config using AI
       const generator = new AIConfigGenerator()
       template = await generator.generateConfig(args.serviceName, args.prompt)
-      
+
       serviceInfo = {
         serviceName: template.serviceName,
         displayName: this.toDisplayName(template.serviceName),
@@ -194,7 +194,7 @@ Update the command builder with new examples:
 
 Users will need to set up their Anthropic API key:
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
+ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
 ### 5. Error Handling

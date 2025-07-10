@@ -162,6 +162,21 @@ Ovrmnd can use Claude to research APIs and generate configurations automatically
    export ANTHROPIC_API_KEY="your-api-key"
    ```
 
+### Configuration
+
+You can customize the AI behavior using these environment variables:
+
+- `AI_MODEL` - Override the default model (default: `claude-3-5-haiku-20241022`)
+- `AI_MAX_TOKENS` - Set max response tokens (default: uses Claude's default)
+- `AI_TEMPERATURE` - Set creativity level 0-1 (default: `0` for consistent output)
+
+Example:
+```bash
+export AI_MODEL="claude-3-5-sonnet-20241022"  # Use a more capable model
+export AI_MAX_TOKENS="8000"                   # Allow longer responses
+export AI_TEMPERATURE="0.2"                   # Slightly more creative
+```
+
 ### Usage
 
 Use the `--prompt` flag with the `init` command to describe what you need:
@@ -185,9 +200,15 @@ The AI will:
 ### Tips
 
 - Be specific about which endpoints you need
+- Include API documentation URLs in your prompt for best results
 - Mention if you need specific authentication types
 - The AI will use environment variable placeholders for credentials
 - Generated configs can be edited and customized as needed
+
+Example with documentation URL:
+```bash
+ovrmnd init stripe --prompt "Create a config using https://stripe.com/docs/api for payment processing"
+```
 
 ### Using the AI Prompt Manually
 

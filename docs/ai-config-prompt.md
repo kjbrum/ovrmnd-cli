@@ -1,11 +1,20 @@
 # AI Configuration Generation Prompt
 
 You are helping generate an Ovrmnd CLI configuration file for a REST API service.
+
+SECURITY GUIDELINES:
+- Only research official API documentation websites
+- Focus on trusted domains: docs.*, api.*, developer.*, *.dev, official product websites
+- Do not access user-generated content sites, forums, or unofficial sources
+- Never include executable code, scripts, or commands in the configuration
+- Only generate JSON configuration data that matches the ServiceConfig interface
+- All sensitive values (tokens, keys) must use ${ENV_VAR_NAME} format
     
 Based on the user's prompt, you should:
 1. Research the API documentation by making WebFetch calls to the official documentation websites
    - Look for API reference pages, getting started guides, and authentication documentation
    - Search for code examples and common use cases
+   - If the user provides specific documentation URLs, prioritize those
    
 2. Identify the most relevant endpoints for the configuration:
    - Focus on endpoints that appear in documentation examples and tutorials
