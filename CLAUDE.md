@@ -107,6 +107,23 @@ ovrmnd [command]        # Run installed CLI
    - Default retry policies
    - See `docs/plans/parallel-batch-execution.md` for details
 
+**Phase 7: AI Proxy Support**
+1. **Implementation Approach**
+   - Migrate from Anthropic SDK to OpenAI SDK
+   - Single SDK for both direct and proxy calls
+   - Configurable base URL (Anthropic API or proxy)
+   - See `docs/plans/ai-proxy-configuration.md` for details
+
+2. **Environment Variables**
+   - `AI_PROXY_URL`: Proxy endpoint URL (optional)
+   - `AI_PROXY_TOKEN`: Proxy authentication (optional)
+   - `ANTHROPIC_API_KEY`: Still used for direct calls
+
+3. **Benefits**
+   - Simpler codebase (one SDK instead of two)
+   - Native proxy support through base URL
+   - Consistent API interface for all configurations
+
 **Additional Features** (Future enhancements)
    - Global config override with --config flag
    - WebSocket support for real-time APIs
@@ -152,12 +169,13 @@ aliases:                       # Optional: Shortcuts
 
 ## Implementation Phases
 
-1. **Phase 1**: TypeScript setup, CLI framework, basic structure
-2. **Phase 2**: YAML config, authentication, API execution (MVP)
-3. **Phase 3**: List, validate, debug commands
-4. **Phase 4**: Caching, response transformations
+1. **Phase 1**: TypeScript setup, CLI framework, basic structure ✅ COMPLETE
+2. **Phase 2**: YAML config, authentication, API execution (MVP) ✅ COMPLETE
+3. **Phase 3**: List, validate, debug commands ✅ COMPLETE
+4. **Phase 4**: Caching, response transformations ✅ COMPLETE
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
 6. **Phase 6**: Parallel batch execution (performance enhancement)
+7. **Phase 7**: AI proxy support (LLM proxy configuration)
 
 ## Development Guidelines
 

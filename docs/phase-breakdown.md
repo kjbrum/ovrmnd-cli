@@ -222,6 +222,44 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
 
 ---
 
+## Phase 7: AI Proxy Support
+
+**Goal**: Migrate to OpenAI SDK and enable AI configuration generation through corporate proxy servers
+
+### Tasks:
+1. **T-01: Migrate to OpenAI SDK**
+   - Install openai package
+   - Remove @anthropic-ai/sdk dependency
+   - Update package.json and package-lock.json
+
+2. **T-02: Rewrite AI Config Generator**
+   - Replace all Anthropic SDK usage with OpenAI SDK
+   - Use single client for all AI calls
+   - Configure base URL dynamically (proxy or Anthropic API)
+   - Maintain existing functionality
+
+3. **T-03: Add Proxy Support**
+   - Add AI_PROXY_URL environment variable detection
+   - Add AI_PROXY_TOKEN environment variable (optional)
+   - Implement getModelName() for proxy model prefixing
+   - Test with both configurations
+
+4. **T-04: Update Error Handling**
+   - Handle OpenAI SDK API errors
+   - Add debug output showing base URL
+   - Provide context-aware error messages
+
+5. **T-05: Documentation & Testing**
+   - Update README with new approach
+   - Update all tests to use OpenAI SDK mocks
+   - Add proxy-specific tests
+   - Clean up Anthropic SDK references
+
+### Dependencies: Phase 5 (AI config generation)
+### Estimated Duration: 1 day
+
+---
+
 ## Documentation & Research Needs
 
 ### Documentation to Create:

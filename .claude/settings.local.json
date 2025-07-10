@@ -9,7 +9,8 @@
       "Bash(ovrmnd:*)",
       "Bash(jq:*)",
       "Bash(./node_modules/.bin/tsc:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:platform.openai.com)"
     ],
     "deny": []
   }

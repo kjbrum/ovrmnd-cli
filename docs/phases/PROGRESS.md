@@ -20,6 +20,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase 4: Performance & Optimization | 🟢 Completed | 100% | 2025-07-04 | 2025-07-07 |
 | Phase 5: Advanced Features | 🟢 Completed | 100% | 2025-07-08 | 2025-07-10 |
 | Phase 6: Parallel Batch Execution | 🔴 Not Started | 0% | - | - |
+| Phase 7: AI Proxy Support | 🔴 Not Started | 0% | - | - |
 
 **Legend**: 🔴 Not Started | 🟡 In Progress | 🟢 Completed | ⏸️ Blocked
 
@@ -218,6 +219,40 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ---
 
+## Phase 7: AI Proxy Support
+
+### Tasks:
+- [ ] **T-01: Migrate to OpenAI SDK**
+  - [ ] Install openai package
+  - [ ] Remove @anthropic-ai/sdk dependency
+  - [ ] Update package.json and package-lock.json
+
+- [ ] **T-02: Rewrite AI Config Generator**
+  - [ ] Replace Anthropic SDK with OpenAI SDK
+  - [ ] Use OpenAI client for all AI calls
+  - [ ] Configure base URL (proxy or Anthropic API)
+  - [ ] Update constructor to use single client
+
+- [ ] **T-03: Add Proxy Support**
+  - [ ] Add AI_PROXY_URL environment variable detection
+  - [ ] Add AI_PROXY_TOKEN environment variable (optional)
+  - [ ] Implement getModelName() for proxy model prefixing
+  - [ ] Test with both direct and proxy configurations
+
+- [ ] **T-04: Update Error Handling**
+  - [ ] Handle OpenAI SDK API errors
+  - [ ] Add debug output showing base URL
+  - [ ] Provide context-aware error messages
+
+- [ ] **T-05: Documentation & Testing**
+  - [ ] Update README with AI proxy configuration
+  - [ ] Update existing tests to use OpenAI SDK mocks
+  - [ ] Add tests for proxy configuration
+  - [ ] Remove references to Anthropic SDK
+  - [ ] See [AI Proxy Configuration Plan](../plans/ai-proxy-configuration.md) for details
+
+---
+
 ## Current Focus
 
 **Phase**: 6 - Parallel Batch Execution
@@ -330,15 +365,25 @@ None currently identified.
 
 ## Metrics
 
-- **Total Tasks**: 62
+- **Total Tasks**: 67
 - **Completed Tasks**: 57
 - **In Progress Tasks**: 0
 - **Blocked Tasks**: 0
-- **Not Started Tasks**: 5 (Phase 6)
+- **Not Started Tasks**: 10 (Phase 6 & 7)
 
 ---
 
 ## Change Log
+
+### 2025-07-10 (Later)
+- Phase 7 created for AI Proxy Support:
+  - Complete migration from Anthropic SDK to OpenAI SDK
+  - Simpler codebase with single SDK for all AI calls
+  - Support for AI_PROXY_URL environment variable
+  - Compatible with OpenAI-format corporate AI proxies (e.g., proxy.shopify.ai)
+  - Direct Anthropic API calls work through OpenAI SDK
+  - Optional AI_PROXY_TOKEN for proxy authentication
+  - See [AI Proxy Configuration Plan](../plans/ai-proxy-configuration.md) for details
 
 ### 2025-07-10
 - Phase 5 completed (100%):
