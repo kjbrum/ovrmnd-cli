@@ -156,7 +156,7 @@ describe('TransformPipeline', () => {
   describe('debug output', () => {
     it('should log transformation metrics with debug formatter', () => {
       const debugFormatter = new DebugFormatter(true)
-      const logSpy = jest.spyOn(debugFormatter, 'log')
+      const debugSpy = jest.spyOn(debugFormatter, 'debug')
 
       const configs: TransformConfig[] = [
         {
@@ -177,7 +177,7 @@ describe('TransformPipeline', () => {
 
       pipeline.transform(input, debugFormatter)
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(debugSpy).toHaveBeenCalledWith(
         'TRANSFORM',
         expect.objectContaining({
           step: 1,

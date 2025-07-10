@@ -81,6 +81,9 @@ describe('ValidateCommand', () => {
         .fn()
         .mockImplementation((msg: string) => `SUCCESS: ${msg}`),
       table: jest.fn().mockImplementation(() => 'TABLE'),
+      dim: jest
+        .fn()
+        .mockImplementation((msg: string) => `DIM: ${msg}`),
     } as any
     ;(
       OutputFormatter as jest.MockedClass<typeof OutputFormatter>

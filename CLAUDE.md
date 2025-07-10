@@ -58,32 +58,37 @@ ovrmnd [command]        # Run installed CLI
 - Call command with dot notation (service.endpoint)
 - Dual-mode output (JSON by default, --pretty for human-friendly)
 
+**Already Implemented (Phase 3)**:
+- List command (services, endpoints, aliases)
+- Validate command with semantic validation
+- Debug mode with detailed logging
+
+**Already Implemented (Phase 4)**:
+- Response caching with TTL
+- Cache management commands
+- Response transformations (field extraction, renaming)
+
+**Already Implemented (Phase 5)**:
+- Alias system for command shortcuts
+- Init command with interactive prompts
+- AI-powered configuration generation using Claude
+- Batch operations for multiple API calls
+
 **To Be Implemented**:
 
-1. **CLI Framework** (`src/cli/`)
-   - Command handlers for: list, cache, init, validate, test
-   - Global options: --config
+1. **Parallel Batch Execution** (`src/commands/call.ts`)
+   - Add --parallel flag for concurrent execution
+   - Implement concurrency limiting (--concurrency flag)
+   - Add rate limiting support (--rate-limit flag)
+   - Enhanced progress tracking for parallel operations
+   - See `docs/plans/parallel-batch-execution.md` for details
 
-2. **Configuration Engine** (`src/config/`)
-   - YAML parser and validator
-   - Service discovery from ~/.ovrmnd/ and ./.ovrmnd/
-   - Environment variable interpolation (${VAR_NAME})
-   - Schema validation for YAML structure
-
-3. **API Client** (`src/api/`)
-   - HTTP client with authentication support (Bearer, API Key)
-   - Request builder from YAML endpoint definitions
-   - Response transformation and error handling
-
-4. **Cache System** (`src/cache/`)
-   - TTL-based caching for GET requests
-   - Cache invalidation commands
-   - Persistent storage using flat-cache
-
-5. **Output Formatters** (`src/formatters/`)
-   - JSON formatter (default) for LLM consumption
-   - Human-readable formatter (--pretty flag)
-   - Debug output with request/response details
+2. **Additional Features** (Future enhancements)
+   - Global config override with --config flag
+   - WebSocket support for real-time APIs
+   - GraphQL support
+   - Request/response middleware system
+   - Plugin architecture for custom transformations
 
 ### YAML Configuration Pattern
 
@@ -127,7 +132,7 @@ aliases:                       # Optional: Shortcuts
 2. **Phase 2**: YAML config, authentication, API execution (MVP)
 3. **Phase 3**: List, validate, debug commands
 4. **Phase 4**: Caching, response transformations
-5. **Phase 5**: Aliases, test mode, init command
+5. **Phase 5**: Aliases, init command (with AI support), batch operations
 
 ## Development Guidelines
 
@@ -157,6 +162,26 @@ aliases:                       # Optional: Shortcuts
 - Check `~/.ovrmnd/` for global configs
 - Validate YAML with `ovrmnd validate`
 - Test API calls with `ovrmnd test`
+
+### AI Configuration Generator
+
+The init command supports AI-powered configuration generation using the Claude API.
+
+**Implementation Details**:
+- Service class: `src/services/ai-config-generator.ts`
+- Uses Anthropic SDK with Claude 3.5 Sonnet model
+- Requires `ANTHROPIC_API_KEY` environment variable
+- Validates generated configs using existing schema validation
+
+**Usage**:
+```bash
+ovrmnd init <service> --prompt "description of what you need"
+```
+
+**Testing**:
+- Unit tests mock the Anthropic SDK
+- Integration tests skip if no real API key is available
+- Test with: `ANTHROPIC_API_KEY=your-key npm test tests/integration/ai-init.test.ts`
 
 ## CLI Testing
 

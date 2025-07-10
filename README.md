@@ -14,6 +14,7 @@ Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to 
 *   **LLM-Friendly Output:** Provides structured JSON output for easy parsing by AI agents.
 *   **Built-in Caching:** Reduce redundant API calls with configurable caching for GET requests.
 *   **Aliases:** Create simple shortcuts for complex or frequently used API calls.
+*   **AI-Powered Configuration:** Generate configurations automatically using natural language prompts (powered by Claude).
 
 ## Getting Started
 
@@ -63,8 +64,134 @@ src/
 
 ## Available Commands
 
-- `ovrmnd version` - Show version information
-- More commands coming soon...
+### `ovrmnd call`
+Execute API endpoints defined in your YAML configurations.
+
+```bash
+# Call an endpoint
+ovrmnd call service.endpoint [parameters...]
+
+# Examples
+ovrmnd call github.listRepos
+ovrmnd call github.getUser username=octocat
+ovrmnd call api.createItem name="New Item" --pretty
+
+# Batch operations
+ovrmnd call github.getUser --batch-json='[{"username":"user1"},{"username":"user2"}]'
+```
+
+### `ovrmnd init`
+Initialize a new service configuration with interactive prompts or AI assistance.
+
+```bash
+# Interactive mode
+ovrmnd init github --interactive
+
+# Basic template
+ovrmnd init myapi
+
+# AI-powered generation (requires ANTHROPIC_API_KEY)
+ovrmnd init shopify --prompt "Find Shopify REST API docs for products and orders"
+ovrmnd init github --prompt "Create config for GitHub API repo management"
+
+# Options
+--template=rest     # Template type (default: rest)
+--global           # Create in global config directory (~/.ovrmnd)
+--force            # Overwrite existing files
+--output=path      # Custom output path
+```
+
+### `ovrmnd list`
+List configured services, endpoints, and aliases.
+
+```bash
+# List all services
+ovrmnd list services
+
+# List endpoints for a service
+ovrmnd list endpoints github
+
+# List aliases for a service
+ovrmnd list aliases github
+```
+
+### `ovrmnd validate`
+Validate YAML configuration files.
+
+```bash
+# Validate all configurations
+ovrmnd validate
+
+# Validate specific service
+ovrmnd validate github
+
+# Validate specific file
+ovrmnd validate --file path/to/config.yaml
+
+# Strict mode (treat warnings as errors)
+ovrmnd validate --strict
+```
+
+### `ovrmnd cache`
+Manage the response cache.
+
+```bash
+# Clear all cache
+ovrmnd cache clear
+
+# Clear cache for specific service
+ovrmnd cache clear github
+
+# View cache statistics
+ovrmnd cache stats
+
+# List cached entries
+ovrmnd cache list
+ovrmnd cache list github --verbose
+```
+
+## AI-Powered Configuration Generation
+
+Ovrmnd can use Claude to research APIs and generate configurations automatically.
+
+### Setup
+
+1. Get an Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+2. Set the environment variable:
+   ```bash
+   export ANTHROPIC_API_KEY="your-api-key"
+   ```
+
+### Usage
+
+Use the `--prompt` flag with the `init` command to describe what you need:
+
+```bash
+# Research and create configurations
+ovrmnd init shopify --prompt "Find the Shopify REST API documentation and create a config for managing products, orders, and customers"
+
+ovrmnd init slack --prompt "Create a Slack API config for sending messages and managing channels"
+
+ovrmnd init stripe --prompt "Generate a Stripe API configuration for payment processing and customer management"
+```
+
+The AI will:
+- Research the API documentation
+- Identify authentication requirements
+- Find the most useful endpoints
+- Generate a complete YAML configuration
+- Include helpful aliases and transformations
+
+### Tips
+
+- Be specific about which endpoints you need
+- Mention if you need specific authentication types
+- The AI will use environment variable placeholders for credentials
+- Generated configs can be edited and customized as needed
+
+### Using the AI Prompt Manually
+
+The system prompt used for AI configuration generation is available in [docs/ai-config-prompt.md](docs/ai-config-prompt.md). You can use this prompt with any AI assistant (Claude, ChatGPT, etc.) by replacing the `{serviceName}` and `{prompt}` placeholders.
 
 ## Development Progress
 

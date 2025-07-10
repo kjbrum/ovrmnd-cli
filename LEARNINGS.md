@@ -633,3 +633,147 @@ When implementing parallel execution (Phase 5, T-06), key challenges include:
 6. **Memory Management**: Large batches could consume significant memory if not handled carefully
 
 See the full implementation plan in [docs/plans/parallel-batch-execution.md](docs/plans/parallel-batch-execution.md)
+
+## AI-Powered Configuration Generation
+
+### Design Decisions
+
+1. **Integration Approach**:
+   - Added as an option to existing init command rather than separate command
+   - Uses `--prompt` flag to trigger AI mode
+   - Maintains all existing init functionality (--force, --global, --output)
+
+2. **AI Provider Choice**:
+   - Used Anthropic SDK with Claude 3.5 Sonnet model
+   - Temperature set to 0 for consistent, deterministic output
+   - Max tokens set to 4000 to accommodate complex configs
+
+3. **Prompt Engineering**:
+   - System prompt includes full ServiceConfig TypeScript interface
+   - Added detailed property descriptions and examples
+   - Clear guidelines for each field (e.g., always use ${ENV_VAR} format)
+   - Examples of common endpoint patterns (list, get, create, update, delete)
+
+4. **Error Handling**:
+   - Validates AI-generated JSON using existing Zod schema
+   - Graceful fallback for API errors
+   - Clear error messages guide users to fix issues
+
+### System Prompt Improvements
+
+The system prompt evolved through iterations to be more precise:
+
+1. **Initial Version**: Basic interface with minimal guidance
+2. **Enhanced Version**: Added detailed property descriptions:
+   - Explained what each property is used for
+   - Provided format examples (e.g., 'github', 'shopify-admin')
+   - Specified constraints (e.g., no trailing slash in baseUrl)
+   - Included common patterns and best practices
+
+3. **Key Guidelines Added**:
+   - serviceName: Use lowercase with hyphens
+   - baseUrl: Include protocol, no trailing slash
+   - endpoints.name: Use camelCase, be descriptive
+   - endpoints.path: Use {param} syntax, NOT :param
+   - cacheTTL: Different values for stable vs changing data
+   - transform: Examples of field extraction and renaming
+
+4. **Research Process Clarification**:
+   - Made explicit that AI should use WebFetch for documentation research
+   - Expanded endpoint selection criteria:
+     * Focus on endpoints from documentation examples
+     * Match user's specific needs
+     * Include foundational endpoints plus specialized ones
+   - Added sub-tasks for endpoint analysis:
+     * Identify query parameters for defaultParams
+     * Analyze response structure for transforms
+     * Find common use cases for aliases
+   - Emphasized generating "smart defaults" based on research
+
+### Implementation Patterns
+
+```typescript
+// Extract environment variable from AI-generated config
+const extractEnvVarName = (token?: string): string | undefined => {
+  if (!token) return undefined
+  const match = token.match(/\${([^}]+)}/)
+  return match ? match[1] : undefined
+}
+
+// JSON extraction from AI response
+const extractJSON = (text: string): unknown => {
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw error
+  return JSON.parse(jsonMatch[0])
+}
+```
+
+### Testing Approach
+
+1. **Unit Tests**:
+   - Mock Anthropic SDK completely
+   - Test all error scenarios
+   - Verify system prompt includes key information
+
+2. **Integration Tests**:
+   - Skip when no API key available
+   - Test real API calls when possible
+   - Verify end-to-end flow
+
+### TypeScript Challenges
+
+1. **Environment Variable Access**:
+   - ESLint requires bracket notation: `process.env['ANTHROPIC_API_KEY']`
+   - Not `process.env.ANTHROPIC_API_KEY`
+
+2. **Mock Implementation**:
+   - Anthropic.APIError constructor issues in tests
+   - Fixed with Object.create and Object.assign pattern
+
+3. **Type Safety**:
+   - AI response content requires type checking
+   - Cast unknown JSON to ServiceConfig after validation
+
+### Security Considerations
+
+- API key required via environment variable
+- Never log or expose API keys
+- AI instructed to use ${ENV_VAR} format for all tokens
+- Validated configs checked for proper token format
+
+### User Experience
+
+1. **Progress Indication**:
+   - Shows "🤖 Using AI to research and generate configuration..." in pretty mode
+   - Helps set expectations for API call delay
+
+2. **Next Steps**:
+   - Extracts environment variable names from generated config
+   - Includes in next steps output
+   - Guides users to set required environment variables
+
+3. **Error Messages**:
+   - Clear indication when API key is missing
+   - Helpful error messages for validation failures
+   - Suggests rephrasing prompt if generation fails
+
+### Future Enhancements
+
+- Support for other AI providers (OpenAI, etc.)
+- Iterative refinement based on validation errors
+- Learning from user's existing configs
+- Caching successful patterns for common services
+
+### System Prompt Architecture
+
+- Moved system prompt to separate markdown file (`docs/ai-config-prompt.md`)
+- Benefits:
+  * Prompt is easily accessible for users who want to use it manually
+  * Single source of truth for the prompt
+  * Can be versioned and tracked separately
+  * Easier to update without modifying code
+- Implementation loads prompt from file, no fallback
+- If prompt file is missing, throws proper error indicating installation issue
+- File is simple markdown with just the prompt content (no extra sections)
+- Placeholders `{serviceName}` and `{prompt}` are replaced at runtime
+- Decision: No fallback prompt because if the file is missing, it's a bigger issue that should be fixed

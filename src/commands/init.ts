@@ -7,6 +7,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as yaml from 'js-yaml'
 import type { ServiceConfig } from '../types/config'
+import { AIConfigGenerator } from '../services/ai-config-generator'
 
 interface InitArgs {
   serviceName?: string
@@ -17,6 +18,7 @@ interface InitArgs {
   interactive: boolean
   pretty: boolean
   debug: boolean
+  prompt?: string
 }
 
 interface ServiceInfo {
@@ -78,6 +80,12 @@ export class InitCommand extends BaseCommand<InitArgs> {
         type: 'boolean',
         default: false,
       })
+      .option('prompt', {
+        alias: 'p',
+        describe:
+          'Natural language prompt for AI-powered config generation',
+        type: 'string',
+      })
       .example(
         '$0 init github --interactive',
         'Interactive GitHub service setup',
@@ -89,6 +97,14 @@ export class InitCommand extends BaseCommand<InitArgs> {
       .example(
         '$0 init slack --global --interactive',
         'Create in global directory with prompts',
+      )
+      .example(
+        '$0 init shopify --prompt "Find Shopify REST API docs for products and orders"',
+        'AI-powered Shopify config generation',
+      )
+      .example(
+        '$0 init github --prompt "Create config for GitHub API repo management"',
+        'AI-powered GitHub config generation',
       ) as unknown as Argv<InitArgs>
   }
 
@@ -98,14 +114,55 @@ export class InitCommand extends BaseCommand<InitArgs> {
     const formatter = new OutputFormatter(!args.pretty)
 
     try {
-      // Collect service information
-      const serviceInfo = await this.collectServiceInfo(args)
+      let serviceInfo: ServiceInfo
+      let template: ServiceConfig
 
-      // Generate template based on type
-      const template = this.generateTemplate(
-        serviceInfo,
-        args.template,
-      )
+      // Check if AI generation is requested
+      if (args.prompt) {
+        if (!args.serviceName) {
+          throw new OvrmndError({
+            code: ErrorCode.PARAM_REQUIRED,
+            message: 'Service name is required when using --prompt',
+            help: 'Provide service name: ovrmnd init <serviceName> --prompt "..."',
+          })
+        }
+
+        // Show progress
+        if (args.pretty) {
+          process.stderr.write(
+            formatter.info(
+              '🤖 Using AI to research and generate configuration...\n',
+            ),
+          )
+        }
+
+        // Generate config using AI
+        const generator = new AIConfigGenerator()
+        template = await generator.generateConfig(
+          args.serviceName,
+          args.prompt,
+        )
+
+        const authType = template.authentication?.type ?? 'none'
+        const extractedEnvVar = template.authentication?.token
+          ? this.extractEnvVarName(template.authentication.token)
+          : undefined
+
+        serviceInfo = {
+          serviceName: template.serviceName,
+          displayName: this.toDisplayName(template.serviceName),
+          baseUrl: template.baseUrl,
+          authType,
+          ...(authType === 'apikey' && template.authentication?.header
+            ? { authHeader: template.authentication.header }
+            : {}),
+          ...(extractedEnvVar ? { envVarName: extractedEnvVar } : {}),
+        }
+      } else {
+        // Existing logic for non-AI generation
+        serviceInfo = await this.collectServiceInfo(args)
+        template = this.generateTemplate(serviceInfo, args.template)
+      }
 
       // Determine output path
       const outputPath = await this.determineOutputPath(
@@ -189,7 +246,11 @@ export class InitCommand extends BaseCommand<InitArgs> {
       }
     } catch (error) {
       const errorOutput = formatter.formatError(error)
-      process.stderr.write(`${errorOutput}\n`)
+      if (formatter.isJsonMode) {
+        process.stdout.write(`${errorOutput}\n`)
+      } else {
+        process.stderr.write(`${errorOutput}\n`)
+      }
       process.exit(1)
     }
   }
@@ -506,5 +567,12 @@ export class InitCommand extends BaseCommand<InitArgs> {
 
   private toEnvVarName(serviceName: string): string {
     return `${serviceName.toUpperCase().replace(/-/g, '_')}_API_TOKEN`
+  }
+
+  private extractEnvVarName(token?: string): string | undefined {
+    if (!token) return undefined
+    // Extract from ${ENV_VAR_NAME} format
+    const match = token.match(/\$\{([^}]+)\}/)
+    return match ? match[1] : undefined
   }
 }

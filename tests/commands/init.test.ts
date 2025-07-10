@@ -4,10 +4,12 @@ import * as yaml from 'js-yaml'
 import prompts from 'prompts'
 import { OutputFormatter } from '../../src/utils/output'
 import { ErrorCode } from '../../src/utils/error'
+import { AIConfigGenerator } from '../../src/services/ai-config-generator'
 
 jest.mock('fs/promises')
 jest.mock('prompts')
 jest.mock('../../src/utils/output')
+jest.mock('../../src/services/ai-config-generator')
 
 describe('InitCommand', () => {
   let command: InitCommand
@@ -31,9 +33,15 @@ describe('InitCommand', () => {
       format: jest
         .fn()
         .mockImplementation(data => JSON.stringify(data)),
-      formatError: jest
-        .fn()
-        .mockImplementation(error => `Error: ${error}`),
+      formatError: jest.fn().mockImplementation(error => {
+        if (mockFormatter.isJsonMode && error instanceof Error) {
+          return JSON.stringify({
+            error: error.message,
+            code: (error as any).code,
+          })
+        }
+        return `Error: ${error}`
+      }),
       success: jest.fn().mockImplementation(msg => `✓ ${msg}`),
       warning: jest.fn().mockImplementation(msg => `⚠ ${msg}`),
       info: jest.fn().mockImplementation(msg => `ℹ ${msg}`),
@@ -433,6 +441,254 @@ describe('InitCommand', () => {
 
         expect(mockFs.writeFile).toHaveBeenCalledWith(
           '/custom/path/custom.yml',
+          expect.any(String),
+          'utf-8',
+        )
+      })
+    })
+
+    describe('AI-powered generation', () => {
+      let mockAIGenerator: jest.Mocked<AIConfigGenerator>
+
+      beforeEach(() => {
+        mockAIGenerator = {
+          generateConfig: jest.fn(),
+        } as unknown as jest.Mocked<AIConfigGenerator>
+        ;(
+          AIConfigGenerator as jest.MockedClass<
+            typeof AIConfigGenerator
+          >
+        ).mockImplementation(() => mockAIGenerator)
+      })
+
+      it('should require service name when using --prompt', async () => {
+        await command.handler({
+          template: 'rest',
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create GitHub API config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(processStdoutSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            '"error":"Service name is required when using --prompt"',
+          ),
+        )
+        expect(processExitSpy).toHaveBeenCalledWith(1)
+      })
+
+      it('should generate config using AI when prompt is provided', async () => {
+        const mockAIConfig = {
+          serviceName: 'github',
+          baseUrl: 'https://api.github.com',
+          authentication: {
+            type: 'bearer' as const,
+            token: '${GITHUB_TOKEN}',
+          },
+          endpoints: [
+            {
+              name: 'listRepos',
+              method: 'GET' as const,
+              path: '/user/repos',
+              cacheTTL: 300,
+            },
+          ],
+          aliases: [
+            {
+              name: 'my-repos',
+              endpoint: 'listRepos',
+              args: { type: 'owner' },
+            },
+          ],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockAIConfig)
+        mockFs.access.mockRejectedValue(new Error('File not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'github',
+          template: 'rest',
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt:
+            'Create GitHub API config for repository management',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockAIGenerator.generateConfig).toHaveBeenCalledWith(
+          'github',
+          'Create GitHub API config for repository management',
+        )
+
+        expect(mockFs.writeFile).toHaveBeenCalledWith(
+          expect.stringContaining('github.yaml'),
+          expect.stringContaining('github API Configuration'),
+          'utf-8',
+        )
+
+        expect(processStdoutSpy).toHaveBeenCalledWith(
+          expect.stringContaining('"success":true'),
+        )
+      })
+
+      it('should show progress message in pretty mode', async () => {
+        const mockAIConfig = {
+          serviceName: 'test',
+          baseUrl: 'https://api.test.com',
+          endpoints: [],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockAIConfig)
+        mockFs.access.mockRejectedValue(new Error('File not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'test',
+          template: 'rest',
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: true,
+          debug: false,
+          prompt: 'Create test API config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockFormatter.info).toHaveBeenCalledWith(
+          '🤖 Using AI to research and generate configuration...\n',
+        )
+      })
+
+      it('should extract environment variable from AI config', async () => {
+        const mockAIConfig = {
+          serviceName: 'slack',
+          baseUrl: 'https://slack.com/api',
+          authentication: {
+            type: 'apikey' as const,
+            token: '${SLACK_API_KEY}',
+            header: 'Authorization',
+          },
+          endpoints: [],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockAIConfig)
+        mockFs.access.mockRejectedValue(new Error('File not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'slack',
+          template: 'rest',
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create Slack API config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(processStdoutSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            '"Set environment variable: SLACK_API_KEY"',
+          ),
+        )
+      })
+
+      it('should handle AI generation errors gracefully', async () => {
+        mockAIGenerator.generateConfig.mockRejectedValue(
+          new Error('AI generation failed'),
+        )
+
+        await command.handler({
+          serviceName: 'test',
+          template: 'rest',
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create test config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockFormatter.formatError).toHaveBeenCalled()
+        expect(processExitSpy).toHaveBeenCalledWith(1)
+      })
+
+      it('should respect --force flag with AI generation', async () => {
+        const mockAIConfig = {
+          serviceName: 'test',
+          baseUrl: 'https://api.test.com',
+          endpoints: [],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockAIConfig)
+        mockFs.access.mockResolvedValue(undefined) // File exists
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'test',
+          template: 'rest',
+          force: true,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create test config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockFs.writeFile).toHaveBeenCalled()
+        expect(processStdoutSpy).toHaveBeenCalledWith(
+          expect.stringContaining('"success":true'),
+        )
+      })
+
+      it('should respect --global flag with AI generation', async () => {
+        const mockAIConfig = {
+          serviceName: 'test',
+          baseUrl: 'https://api.test.com',
+          endpoints: [],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockAIConfig)
+        mockFs.access.mockRejectedValue(new Error('File not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'test',
+          template: 'rest',
+          force: false,
+          global: true,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create test config',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockFs.writeFile).toHaveBeenCalledWith(
+          expect.stringMatching(/\.ovrmnd\/test\.yaml$/),
           expect.any(String),
           'utf-8',
         )
