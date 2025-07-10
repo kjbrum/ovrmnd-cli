@@ -219,7 +219,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ---
 
-## Phase 7: AI Proxy Support
+## Phase 7: Multi-Provider LLM Support
 
 ### Tasks:
 - [ ] **T-01: Migrate to OpenAI SDK**
@@ -227,28 +227,56 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
   - [ ] Remove @anthropic-ai/sdk dependency
   - [ ] Update package.json and package-lock.json
 
-- [ ] **T-02: Rewrite AI Config Generator**
+- [ ] **T-02: Create Provider Abstraction**
+  - [ ] Define AIProviderConfig interface
+  - [ ] Create provider configuration mappings
+  - [ ] Implement provider selection logic
+  - [ ] Default to OpenAI provider
+
+- [ ] **T-03: Update AI Config Generator**
   - [ ] Replace Anthropic SDK with OpenAI SDK
-  - [ ] Use OpenAI client for all AI calls
-  - [ ] Configure base URL (proxy or Anthropic API)
-  - [ ] Update constructor to use single client
+  - [ ] Implement provider-based client initialization
+  - [ ] Add provider-specific error handling
+  - [ ] Update debug output with provider info
 
-- [ ] **T-03: Add Proxy Support**
-  - [ ] Add AI_PROXY_URL environment variable detection
-  - [ ] Add AI_PROXY_TOKEN environment variable (optional)
-  - [ ] Implement getModelName() for proxy model prefixing
-  - [ ] Test with both direct and proxy configurations
-
-- [ ] **T-04: Update Error Handling**
-  - [ ] Handle OpenAI SDK API errors
-  - [ ] Add debug output showing base URL
-  - [ ] Provide context-aware error messages
+- [ ] **T-04: Add Provider Support**
+  - [ ] OpenAI provider configuration
+  - [ ] Anthropic provider configuration (via compatibility layer)
+  - [ ] Google Gemini provider configuration
+  - [ ] Test each provider thoroughly
 
 - [ ] **T-05: Documentation & Testing**
-  - [ ] Update README with AI proxy configuration
+  - [ ] Update README with provider configuration
+  - [ ] Create provider comparison table
   - [ ] Update existing tests to use OpenAI SDK mocks
-  - [ ] Add tests for proxy configuration
+  - [ ] Add provider-specific tests
   - [ ] Remove references to Anthropic SDK
+  - [ ] See [Multi-Provider LLM Support Plan](../plans/multi-provider-llm-support.md) for details
+
+---
+
+## Phase 8: AI Proxy Support
+
+### Tasks:
+- [ ] **T-01: Add Proxy Configuration**
+  - [ ] Add AI_PROXY_URL environment variable
+  - [ ] Add AI_PROXY_TOKEN environment variable (optional)
+  - [ ] Override provider base URL when proxy is configured
+
+- [ ] **T-02: Update Provider System**
+  - [ ] Modify AIConfigGenerator to accept custom base URLs
+  - [ ] Implement proxy detection logic
+  - [ ] Add proxy model name prefixing if needed
+
+- [ ] **T-03: Enhanced Error Handling**
+  - [ ] Add proxy-specific error messages
+  - [ ] Debug output showing proxy configuration
+  - [ ] Fallback suggestions for proxy errors
+
+- [ ] **T-04: Documentation & Testing**
+  - [ ] Document proxy configuration options
+  - [ ] Add proxy setup examples
+  - [ ] Test with various proxy configurations
   - [ ] See [AI Proxy Configuration Plan](../plans/ai-proxy-configuration.md) for details
 
 ---
@@ -374,6 +402,14 @@ None currently identified.
 ---
 
 ## Change Log
+
+### 2025-07-11
+- Phase reorganization:
+  - Multi-Provider LLM Support moved to Phase 7 (from being part of proxy support)
+  - AI Proxy Support moved to Phase 8 (now builds on provider abstraction)
+  - This ordering makes more logical sense - establish provider system first, then add proxy as an enhancement
+  - Created comprehensive plan for multi-provider support in `docs/plans/multi-provider-llm-support.md`
+  - Updated proxy plan to reflect dependency on provider system
 
 ### 2025-07-10 (Later)
 - Phase 7 created for AI Proxy Support:

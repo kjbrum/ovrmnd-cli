@@ -222,9 +222,9 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
 
 ---
 
-## Phase 7: AI Proxy Support
+## Phase 7: Multi-Provider LLM Support
 
-**Goal**: Migrate to OpenAI SDK and enable AI configuration generation through corporate proxy servers
+**Goal**: Add support for multiple LLM providers (OpenAI, Anthropic, Google) using the OpenAI SDK as a unified interface
 
 ### Tasks:
 1. **T-01: Migrate to OpenAI SDK**
@@ -232,30 +232,61 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
    - Remove @anthropic-ai/sdk dependency
    - Update package.json and package-lock.json
 
-2. **T-02: Rewrite AI Config Generator**
-   - Replace all Anthropic SDK usage with OpenAI SDK
-   - Use single client for all AI calls
-   - Configure base URL dynamically (proxy or Anthropic API)
-   - Maintain existing functionality
+2. **T-02: Create Provider Abstraction**
+   - Define provider configuration interface
+   - Create provider registry with OpenAI, Anthropic, Google
+   - Implement provider selection logic
+   - Default to OpenAI provider for new installations
 
-3. **T-03: Add Proxy Support**
-   - Add AI_PROXY_URL environment variable detection
-   - Add AI_PROXY_TOKEN environment variable (optional)
-   - Implement getModelName() for proxy model prefixing
-   - Test with both configurations
+3. **T-03: Update AI Config Generator**
+   - Replace Anthropic SDK with provider-based system
+   - Dynamic client initialization based on provider
+   - Provider-specific model defaults
+   - Provider-specific error handling
 
-4. **T-04: Update Error Handling**
-   - Handle OpenAI SDK API errors
-   - Add debug output showing base URL
-   - Provide context-aware error messages
+4. **T-04: Add Provider Support**
+   - OpenAI configuration and testing
+   - Anthropic via compatibility endpoint
+   - Google Gemini via compatibility endpoint
+   - Provider-specific error messages
 
 5. **T-05: Documentation & Testing**
-   - Update README with new approach
-   - Update all tests to use OpenAI SDK mocks
-   - Add proxy-specific tests
-   - Clean up Anthropic SDK references
+   - Provider comparison documentation
+   - Configuration examples for each provider
+   - Update tests for provider abstraction
+   - Clear documentation on provider selection
 
 ### Dependencies: Phase 5 (AI config generation)
+### Estimated Duration: 2 days
+
+---
+
+## Phase 8: AI Proxy Support
+
+**Goal**: Enable AI calls through corporate proxy servers for any configured provider
+
+### Tasks:
+1. **T-01: Add Proxy Configuration**
+   - AI_PROXY_URL environment variable
+   - AI_PROXY_TOKEN environment variable (optional)
+   - Proxy URL validation
+
+2. **T-02: Update Provider System**
+   - Override provider base URLs when proxy configured
+   - Support proxy-specific model naming
+   - Maintain provider abstraction
+
+3. **T-03: Enhanced Error Handling**
+   - Proxy-specific error messages
+   - Debug logging for proxy configuration
+   - Fallback suggestions
+
+4. **T-04: Documentation & Testing**
+   - Proxy setup documentation
+   - Enterprise configuration examples
+   - Integration tests with proxy
+
+### Dependencies: Phase 7 (Multi-provider support)
 ### Estimated Duration: 1 day
 
 ---

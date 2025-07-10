@@ -2,55 +2,52 @@
 
 ## Overview
 
-This document outlines the implementation plan for migrating the AI configuration generator from the Anthropic SDK to the OpenAI SDK. This enables seamless support for both direct Anthropic API calls and proxy servers using a single SDK.
+This document outlines the implementation plan for adding proxy support to the multi-provider LLM system. Building on Phase 7's provider abstraction, this feature enables AI calls through corporate proxy servers for any configured provider.
 
 ## Requirements
 
 ### Primary Goals
-1. Replace Anthropic SDK with OpenAI SDK for all AI calls
-2. Support configurable proxy URL for enterprise environments
-3. Maintain exact same functionality as current implementation
+1. Add proxy URL support to the existing provider system
+2. Support enterprise environments with corporate AI proxies
+3. Work seamlessly with any configured provider (OpenAI, Anthropic, Google)
 4. Simple environment variable configuration
 
 ### Use Cases
-- Direct Anthropic API calls (default)
 - Enterprise users with corporate AI proxies
-- Users with custom LLM gateways
 - Development/testing with local proxy servers
+- Custom LLM gateways (e.g., proxy.shopify.ai)
+- Provider-agnostic proxy configuration
 
 ## Technical Implementation
 
-### 1. Dependencies
+### 1. Prerequisites
 
-Update dependencies - remove Anthropic SDK, add OpenAI SDK:
-```json
-{
-  "dependencies": {
-    "openai": "^4.0.0"
-    // Remove: "@anthropic-ai/sdk"
-  }
-}
-```
+This phase builds on Phase 7, which has already:
+- Migrated to OpenAI SDK
+- Implemented provider abstraction
+- Removed Anthropic SDK dependency
 
 ### 2. Environment Variable Support
 
 ```bash
-# Direct Anthropic API (default)
-export ANTHROPIC_API_KEY=sk-ant-xxxxx
+# Select your provider (from Phase 7)
+export AI_PROVIDER=openai|anthropic|google
+export OPENAI_API_KEY=sk-xxxxx        # or ANTHROPIC_API_KEY, GOOGLE_API_KEY
 
-# OR use a proxy
+# Add proxy configuration (Phase 8)
 export AI_PROXY_URL=https://proxy.shopify.ai
-export AI_PROXY_TOKEN=shopify-xxxxx  # Optional, defaults to ANTHROPIC_API_KEY
+export AI_PROXY_TOKEN=shopify-xxxxx  # Optional, defaults to provider's API key
 ```
 
 ### 3. AI Config Generator Updates
 
 #### File: `src/services/ai-config-generator.ts`
 
-Complete rewrite to use only OpenAI SDK:
+Update the existing provider-based implementation to support proxy URLs:
 
 ```typescript
 import OpenAI from 'openai'
+import { AI_PROVIDERS, AIProviderConfig } from '../types/ai-provider'
 import type { ServiceConfig } from '../types/config'
 import { validateServiceConfig } from '../config/validator'
 import { OvrmndError, ErrorCode } from '../utils/error'
@@ -59,62 +56,41 @@ import * as path from 'path'
 
 export class AIConfigGenerator {
   private client: OpenAI
+  private provider: AIProviderConfig
   private systemPromptCache: string | null = null
   private model: string
   private maxTokens: number | undefined
   private temperature: number
+  private usingProxy: boolean = false
   
   constructor() {
+    // ... existing provider selection logic from Phase 7 ...
+    
+    // Check for proxy configuration
     const proxyUrl = process.env['AI_PROXY_URL']
     const proxyToken = process.env['AI_PROXY_TOKEN']
-    const apiKey = proxyToken || process.env['ANTHROPIC_API_KEY']
     
-    if (!apiKey) {
-      throw new OvrmndError({
-        code: ErrorCode.CONFIG_INVALID,
-        message: 'ANTHROPIC_API_KEY or AI_PROXY_TOKEN required for AI generation',
-        help: 'Set your API key: export ANTHROPIC_API_KEY="your-api-key"',
+    if (proxyUrl) {
+      this.usingProxy = true
+      // Override the provider's base URL with proxy URL
+      const effectiveApiKey = proxyToken || apiKey // Use proxy token if provided
+      
+      this.client = new OpenAI({
+        apiKey: effectiveApiKey,
+        baseURL: proxyUrl,
+      })
+      
+      // Log proxy configuration in debug mode
+      if (process.env['DEBUG']) {
+        console.error(`Using AI proxy: ${proxyUrl}`)
+      }
+    } else {
+      // Use provider's default configuration
+      this.client = new OpenAI({
+        apiKey,
+        baseURL: this.provider.baseURL,
       })
     }
-    
-    // Read configuration from environment variables
-    this.model = process.env['AI_MODEL'] ?? 'claude-3-5-haiku-20241022'
-    this.maxTokens = process.env['AI_MAX_TOKENS']
-      ? parseInt(process.env['AI_MAX_TOKENS'], 10)
-      : undefined
-    this.temperature = process.env['AI_TEMPERATURE']
-      ? parseFloat(process.env['AI_TEMPERATURE'])
-      : 0
-    
-    // Validate configuration
-    if (
-      this.maxTokens !== undefined &&
-      (isNaN(this.maxTokens) || this.maxTokens <= 0)
-    ) {
-      throw new OvrmndError({
-        code: ErrorCode.CONFIG_INVALID,
-        message: 'AI_MAX_TOKENS must be a positive integer',
-        help: 'Set a valid value: export AI_MAX_TOKENS="4000"',
-      })
-    }
-    
-    if (
-      isNaN(this.temperature) ||
-      this.temperature < 0 ||
-      this.temperature > 1
-    ) {
-      throw new OvrmndError({
-        code: ErrorCode.CONFIG_INVALID,
-        message: 'AI_TEMPERATURE must be a number between 0 and 1',
-        help: 'Set a valid value: export AI_TEMPERATURE="0"',
-      })
-    }
-    
-    // Initialize OpenAI client with appropriate base URL
-    this.client = new OpenAI({
-      apiKey,
-      baseURL: proxyUrl || 'https://api.anthropic.com/v1/',
-    })
   }
   
   async generateConfig(
@@ -180,10 +156,9 @@ export class AIConfigGenerator {
   }
   
   private getModelName(): string {
-    // For some proxies, the model might need "anthropic:" prefix
-    const proxyUrl = process.env['AI_PROXY_URL']
-    if (proxyUrl && !this.model.startsWith('anthropic:')) {
-      return `anthropic:${this.model}`
+    // When using proxy, some providers need special prefixes
+    if (this.usingProxy && this.provider.modelPrefix) {
+      return `${this.provider.modelPrefix}${this.model}`
     }
     return this.model
   }
@@ -222,17 +197,33 @@ export class AIConfigGenerator {
   
   // ... rest of existing methods (extractJSON, validateConfig, performSecurityValidation)
 }
+  
+  // Update error handling to show proxy-specific messages
+  private getProviderSpecificHelp(error: any): string {
+    if (this.usingProxy) {
+      const statusCode = error.status || error.statusCode
+      if (statusCode === 401) return 'Check your AI_PROXY_TOKEN or proxy authentication'
+      if (statusCode === 404) return 'Proxy URL may be incorrect or endpoint not found'
+      if (statusCode === 502) return 'Proxy server error - check if proxy is running'
+      return 'Check your proxy configuration (AI_PROXY_URL and AI_PROXY_TOKEN)'
+    }
+    
+    // ... existing provider-specific error messages ...
+  }
+}
 ```
 
 ### 4. Debug Mode Enhancements
 
-Add proxy information to debug output:
+Update debug output to show proxy status:
 
 ```typescript
 // In generateConfig method
 if (options.debug) {
   logger.debug('AI Configuration:', {
-    baseURL: process.env['AI_PROXY_URL'] || 'https://api.anthropic.com/v1/',
+    provider: this.provider.name,
+    usingProxy: this.usingProxy,
+    baseURL: this.usingProxy ? process.env['AI_PROXY_URL'] : this.provider.baseURL,
     model: this.getModelName(),
     temperature: this.temperature,
     maxTokens: this.maxTokens ?? 4096,
@@ -244,22 +235,31 @@ if (options.debug) {
 
 ### Unit Tests
 - Mock OpenAI SDK client
-- Test direct Anthropic API configuration
-- Test proxy configuration
-- Test model name prefixing for proxies
-- Test error handling
+- Test proxy override for each provider
+- Test proxy token vs provider API key logic
+- Test model name prefixing with proxy
+- Test proxy-specific error handling
 
 ### Integration Tests
 ```bash
-# Test with proxy
+# Test OpenAI with proxy
+export AI_PROVIDER=openai
+export OPENAI_API_KEY=sk-xxxxx
 export AI_PROXY_URL=https://proxy.shopify.ai
 export AI_PROXY_TOKEN=shopify-xxxxx
 ovrmnd init github --prompt "Create GitHub API config"
 
-# Test without proxy (direct Anthropic)
+# Test Anthropic with proxy
+export AI_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-xxxxx
+export AI_PROXY_URL=https://proxy.shopify.ai
+ovrmnd init github --prompt "Create GitHub API config"
+
+# Test Google without proxy (direct)
 unset AI_PROXY_URL
 unset AI_PROXY_TOKEN
-export ANTHROPIC_API_KEY=sk-ant-xxxxx
+export AI_PROVIDER=google
+export GOOGLE_API_KEY=xxxxx
 ovrmnd init github --prompt "Create GitHub API config"
 ```
 
@@ -271,37 +271,41 @@ Add section on AI proxy configuration:
 ```markdown
 ### AI Proxy Configuration
 
-The Ovrmnd CLI uses the OpenAI SDK for AI configuration generation, which supports both direct Anthropic API calls and proxy servers.
-
-#### Direct Anthropic API (Default)
-```bash
-export ANTHROPIC_API_KEY=sk-ant-xxxxx
-ovrmnd init myservice --prompt "Configure service for..."
-```
+The Ovrmnd CLI supports using proxy servers for AI calls with any configured provider.
 
 #### Using a Proxy Server
 ```bash
+# First, configure your provider (see Multi-Provider section)
+export AI_PROVIDER=openai
+export OPENAI_API_KEY=sk-xxxxx
+
+# Then add proxy configuration
 export AI_PROXY_URL=https://proxy.shopify.ai
-export AI_PROXY_TOKEN=shopify-xxxxx  # Optional, defaults to ANTHROPIC_API_KEY
+export AI_PROXY_TOKEN=shopify-xxxxx  # Optional, defaults to provider's API key
+
+# Generate configuration through proxy
 ovrmnd init myservice --prompt "Configure service for..."
 ```
 
-The proxy must support OpenAI-compatible endpoints (`/v1/chat/completions`).
+#### Proxy Requirements
+- Must support OpenAI-compatible endpoints (`/v1/chat/completions`)
+- Works with any configured provider (OpenAI, Anthropic, Google)
+- Optional proxy-specific authentication token
 ```
 
 ### Environment Variables
-Document the new environment variables:
+Document the proxy-specific environment variables:
 
 - `AI_PROXY_URL`: URL of the AI proxy server (e.g., https://proxy.shopify.ai)
-- `AI_PROXY_TOKEN`: Authentication token for the proxy (defaults to ANTHROPIC_API_KEY)
+- `AI_PROXY_TOKEN`: Authentication token for the proxy (defaults to provider's API key)
 
 ## Implementation Notes
 
-1. **Single SDK**: Uses only OpenAI SDK for all AI calls (simpler codebase)
-2. **Backward Compatibility**: Existing ANTHROPIC_API_KEY continues to work
-3. **Smart Base URL**: Defaults to Anthropic API, switches to proxy when configured
-4. **Token Handling**: AI_PROXY_TOKEN is optional, falls back to ANTHROPIC_API_KEY
-5. **Model Naming**: Proxy calls automatically prefix model with "anthropic:" if needed
+1. **Builds on Phase 7**: Requires provider abstraction from multi-provider support
+2. **Provider Agnostic**: Proxy works with any configured provider
+3. **Base URL Override**: Proxy URL replaces provider's base URL when configured
+4. **Token Handling**: AI_PROXY_TOKEN is optional, falls back to provider's API key
+5. **Model Naming**: Proxy calls may need provider-specific prefixes
 
 ## Security Considerations
 

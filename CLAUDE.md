@@ -107,22 +107,41 @@ ovrmnd [command]        # Run installed CLI
    - Default retry policies
    - See `docs/plans/parallel-batch-execution.md` for details
 
-**Phase 7: AI Proxy Support**
+**Phase 7: Multi-Provider LLM Support**
 1. **Implementation Approach**
    - Migrate from Anthropic SDK to OpenAI SDK
-   - Single SDK for both direct and proxy calls
-   - Configurable base URL (Anthropic API or proxy)
+   - Support multiple providers: OpenAI, Anthropic, Google
+   - Provider abstraction with configurable base URLs
+   - See `docs/plans/multi-provider-llm-support.md` for details
+
+2. **Environment Variables**
+   - `AI_PROVIDER`: Select provider (openai|anthropic|google)
+   - `OPENAI_API_KEY`: For OpenAI provider
+   - `ANTHROPIC_API_KEY`: For Anthropic provider
+   - `GOOGLE_API_KEY`: For Google Gemini provider
+   - `AI_MODEL`: Override default model for provider
+
+3. **Benefits**
+   - Support for multiple LLM providers
+   - Unified interface through OpenAI SDK
+   - Easy provider switching
+   - OpenAI as sensible default provider
+
+**Phase 8: AI Proxy Support**
+1. **Implementation Approach**
+   - Build on Phase 7's provider system
+   - Add proxy URL override for any provider
+   - Support enterprise proxy configurations
    - See `docs/plans/ai-proxy-configuration.md` for details
 
 2. **Environment Variables**
    - `AI_PROXY_URL`: Proxy endpoint URL (optional)
    - `AI_PROXY_TOKEN`: Proxy authentication (optional)
-   - `ANTHROPIC_API_KEY`: Still used for direct calls
 
 3. **Benefits**
-   - Simpler codebase (one SDK instead of two)
-   - Native proxy support through base URL
-   - Consistent API interface for all configurations
+   - Enterprise proxy support
+   - Works with any configured provider
+   - Simple base URL override mechanism
 
 **Additional Features** (Future enhancements)
    - Global config override with --config flag
@@ -175,7 +194,8 @@ aliases:                       # Optional: Shortcuts
 4. **Phase 4**: Caching, response transformations ✅ COMPLETE
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
 6. **Phase 6**: Parallel batch execution (performance enhancement)
-7. **Phase 7**: AI proxy support (LLM proxy configuration)
+7. **Phase 7**: Multi-provider LLM support (OpenAI, Anthropic, Google)
+8. **Phase 8**: AI proxy support (enterprise proxy configuration)
 
 ## Development Guidelines
 
