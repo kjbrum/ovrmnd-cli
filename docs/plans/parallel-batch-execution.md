@@ -4,6 +4,12 @@
 
 This document outlines the plan for implementing parallel execution support for batch operations in the Ovrmnd CLI. Currently, batch operations execute sequentially, which is safe but potentially slow for large batches.
 
+**IMPORTANT DESIGN PRINCIPLE**: Parallel execution is an **opt-in, advanced feature**. The default behavior remains sequential execution to ensure:
+- Backward compatibility
+- Safety for users unfamiliar with concurrency concepts
+- No surprises for existing workflows
+- Simple mental model for most use cases
+
 ## Current State
 
 The batch operations feature (implemented in Phase 5, Task 4) uses sequential execution:
@@ -20,13 +26,27 @@ While sequential execution is safe and simple, parallel execution would provide:
 - Configurable concurrency for different API limits
 - Optional feature for advanced users
 
+## Design Principles
+
+1. **Sequential by Default**: Without the `--parallel` flag, batch operations continue to work exactly as they do today
+2. **No Breaking Changes**: Existing scripts and workflows continue to function without modification
+3. **Explicit Opt-in**: Users must consciously choose parallel execution
+4. **Safe Defaults**: When parallel is enabled, conservative concurrency limit (5) to avoid overwhelming APIs
+5. **Clear Documentation**: Advanced feature clearly marked in help text and documentation
+
 ## Implementation Plan
 
 ### 1. Command Interface Changes
 
-Add new options to the call command:
+**Default Behavior (No Changes)**:
 ```bash
-# Enable parallel execution with default concurrency (5)
+# Sequential execution - exactly as it works today
+ovrmnd call api.getUser --batch-json='[...]'
+```
+
+**Opt-in Parallel Execution**:
+```bash
+# Must explicitly enable with --parallel flag
 ovrmnd call api.getUser --batch-json='[...]' --parallel
 
 # Custom concurrency limit
@@ -192,10 +212,13 @@ const progressBar = new cliProgress.SingleBar({
 
 ### 6. Configuration Options
 
-Add to service YAML configuration:
+**Note**: YAML configuration for parallel execution is **optional** and only applies when `--parallel` flag is used.
+
+Add to service YAML configuration (completely optional):
 ```yaml
 serviceName: api
 baseUrl: https://api.example.com
+# Optional: Only used when --parallel flag is present
 rateLimits:
   requestsPerSecond: 100
   burstSize: 20
@@ -203,15 +226,34 @@ rateLimits:
 endpoints:
   - name: getUser
     # ... existing config
+    # Optional: Only used when --parallel flag is present
     batchConfig:
       maxConcurrency: 5
       retryOn: [429, 503]
       retryDelay: 1000
 ```
 
-### 7. Documentation Requirements
+**Without these configurations**: The tool still works perfectly with sensible defaults when `--parallel` is used.
+
+### 7. Help Text and CLI Documentation
+
+The `--parallel` flag should be clearly marked as an advanced feature in help text:
+
+```
+Batch Options:
+  --batch-json <json>  Execute multiple API calls with different parameters (JSON array)
+  
+Advanced Batch Options:
+  --parallel           [ADVANCED] Enable concurrent execution of batch requests
+  --concurrency <n>    [ADVANCED] Maximum concurrent requests (default: 5, requires --parallel)
+  --rate-limit <n>     [ADVANCED] Maximum requests per second (requires --parallel)
+```
+
+### 8. Documentation Requirements
 
 1. **User Guide**:
+   - **Clear separation**: Sequential (default) vs Parallel (advanced) modes
+   - **Emphasis**: Most users should stick with sequential mode
    - When to use parallel vs sequential
    - Choosing appropriate concurrency levels
    - Understanding rate limits
@@ -219,6 +261,10 @@ endpoints:
 
 2. **Examples**:
    ```bash
+   # DEFAULT BEHAVIOR - Sequential execution (no flags needed)
+   ovrmnd call api.getUser --batch-json='[{"id":"1"},{"id":"2"},{"id":"3"}]'
+   
+   # ADVANCED - Must explicitly opt-in to parallel execution
    # Fast API with high concurrency
    ovrmnd call fast-api.process --batch-json='[...]' --parallel --concurrency 50
    
@@ -245,8 +291,11 @@ endpoints:
 
 ## Risks and Mitigations
 
-1. **Risk**: Overwhelming APIs
-   - **Mitigation**: Conservative defaults, clear documentation
+1. **Risk**: Users accidentally enabling parallel mode
+   - **Mitigation**: Requires explicit `--parallel` flag, no shortcuts
+
+2. **Risk**: Overwhelming APIs
+   - **Mitigation**: Conservative defaults (5 concurrent), clear documentation
 
 2. **Risk**: Complex debugging
    - **Mitigation**: Detailed debug mode, request correlation IDs
@@ -259,7 +308,9 @@ endpoints:
 
 ## Decision Log
 
-- **Sequential as Default**: Keeps tool safe for new users
-- **Opt-in Parallel**: Advanced feature for power users
-- **Configurable Limits**: Flexibility for different use cases
-- **Preserve Order**: Maintaining predictable output
+- **Sequential as Default**: Keeps tool safe for new users - no surprises!
+- **Opt-in Parallel**: Advanced feature requiring explicit `--parallel` flag
+- **No Config Required**: Parallel execution works without any YAML configuration
+- **Configurable Limits**: Flexibility for different use cases when needed
+- **Preserve Order**: Maintaining predictable output in both modes
+- **Hidden Complexity**: Users who don't need parallel execution never see it
