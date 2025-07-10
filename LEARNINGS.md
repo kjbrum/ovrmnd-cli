@@ -822,3 +822,57 @@ const extractJSON = (text: string): unknown => {
 - Added tests for security validation (HTTP URLs, hardcoded tokens)
 - Tests verify that environment variables are properly used in API calls
 - All existing tests updated to expect new default model and max_tokens
+
+## OAuth2 Planning Evolution
+
+### Initial Research Findings
+- **Device Flow** is recommended for CLI applications - no client secret needed, works in headless environments
+- **Authorization Code Flow with PKCE** is good for desktop environments where browser can be opened
+- **keytar** library provides cross-platform secure token storage (macOS Keychain, Linux Secret Service, Windows Credential Vault)
+- Many successful CLI tools use OAuth2: GitHub CLI (device flow), Google Cloud SDK (both flows), AWS CLI (device flow for SSO)
+
+### Architecture Evolution
+
+#### Initial Approach: Plugin System
+- Originally planned a comprehensive plugin system for OAuth2
+- Would support auth, transform, and middleware plugins
+- OAuth2 would be implemented as a plugin
+
+#### Revised Approach: Built-in OAuth2
+After discussion, realized OAuth2 should be built-in because:
+1. **OAuth2 is standardized** - The RFC defines how it works, no need for provider-specific plugins
+2. **Configuration is sufficient** - Different providers just need different URLs and parameters
+3. **Simpler implementation** - No plugin loader, no dynamic loading, just extend existing auth
+4. **Better performance** - No overhead of plugin system
+5. **Easier to test** - Direct implementation is more straightforward
+
+#### Final Design: OAuth2 as Native Auth Type
+```yaml
+authentication:
+  type: oauth2  # Just another auth type like 'bearer' and 'apikey'
+  clientId: ${CLIENT_ID}
+  clientSecret: ${CLIENT_SECRET}
+  authorizationUrl: https://provider.com/oauth/authorize
+  tokenUrl: https://provider.com/oauth/token
+  scopes: ['read', 'write']
+```
+
+### Key Learnings
+1. **Don't over-engineer** - Start with the simplest solution that solves the problem
+2. **Standards reduce complexity** - OAuth2 being standardized means we don't need plugin flexibility
+3. **Configuration over code** - YAML config can handle provider differences without plugins
+4. **Future-proof thoughtfully** - Document plugin system for future, but don't build it prematurely
+
+### Future Plugin System
+Documented separately for when it's actually needed:
+- Custom authentication protocols (not standard OAuth2)
+- Complex response transformations (XML parsing, protobuf, etc.)
+- Request middleware (signing, retries, circuit breakers)
+- See `docs/plans/future-plugin-system.md` for detailed design
+
+### Implementation Plan for OAuth2
+1. Extend auth types to include 'oauth2'
+2. Build token storage with keytar
+3. Implement device and browser flows
+4. Add auth commands (login, logout, status, list)
+5. Create provider templates for common services

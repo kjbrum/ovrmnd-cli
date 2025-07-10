@@ -143,12 +143,33 @@ ovrmnd [command]        # Run installed CLI
    - Works with any configured provider
    - Simple base URL override mechanism
 
+**Phase 9: OAuth2 Built-in Authentication**
+1. **OAuth2 as Native Auth Type**
+   - OAuth2 added alongside bearer and apikey types
+   - No plugin system needed - built directly into CLI
+   - Simpler implementation and better performance
+   - See `docs/plans/oauth2-built-in-auth.md` for details
+
+2. **OAuth2 Implementation**
+   - Device flow (recommended for CLI apps)
+   - Authorization code flow with PKCE
+   - Secure token storage using keytar
+   - Automatic token refresh
+   - Provider templates for common services
+
+3. **New CLI Commands**
+   - `ovrmnd auth login <service>` - Interactive OAuth2 setup
+   - `ovrmnd auth logout <service>` - Revoke tokens
+   - `ovrmnd auth status <service>` - Check auth status
+   - `ovrmnd auth list` - List authenticated services
+
 **Additional Features** (Future enhancements)
+   - Plugin system for extensibility (see `docs/plans/future-plugin-system.md`)
    - Global config override with --config flag
    - WebSocket support for real-time APIs
    - GraphQL support
    - Request/response middleware system
-   - Plugin architecture for custom transformations
+   - OAuth 1.0a support via plugins
 
 ### YAML Configuration Pattern
 
@@ -196,6 +217,7 @@ aliases:                       # Optional: Shortcuts
 6. **Phase 6**: Parallel batch execution (performance enhancement)
 7. **Phase 7**: Multi-provider LLM support (OpenAI, Anthropic, Google)
 8. **Phase 8**: AI proxy support (enterprise proxy configuration)
+9. **Phase 9**: OAuth2 built-in authentication
 
 ## Development Guidelines
 
@@ -219,6 +241,7 @@ aliases:                       # Optional: Shortcuts
 2. Implement in `src/api/auth.ts`
 3. Add validation in `src/config/validator.ts`
 4. Document in README.md
+5. For OAuth2: Update OAuth2Service with provider-specific quirks
 
 ### Debugging Issues
 - Use `--debug` flag for verbose output

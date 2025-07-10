@@ -281,6 +281,42 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ---
 
+## Phase 9: OAuth2 Built-in Authentication
+
+### Tasks:
+- [ ] **T-01: Core OAuth2 Support**
+  - [ ] Extend AuthConfig type to include oauth2
+  - [ ] Implement secure token storage with keytar
+  - [ ] Create OAuth2Service class
+  - [ ] Update auth.ts to handle OAuth2 type
+
+- [ ] **T-02: OAuth2 Flows**
+  - [ ] Implement device flow authentication
+  - [ ] Implement browser flow with PKCE
+  - [ ] Add automatic token refresh logic
+  - [ ] Handle token expiration gracefully
+
+- [ ] **T-03: Auth Commands**
+  - [ ] Create auth login command
+  - [ ] Create auth status command
+  - [ ] Create auth logout command
+  - [ ] Create auth list command
+
+- [ ] **T-04: Provider Support**
+  - [ ] Create common provider templates
+  - [ ] Update init command for OAuth2 setup
+  - [ ] Add provider detection logic
+  - [ ] Document provider configurations
+
+- [ ] **T-05: Testing & Documentation**
+  - [ ] Unit tests for OAuth2Service
+  - [ ] Integration tests for auth commands
+  - [ ] Update README with OAuth2 examples
+  - [ ] Create provider setup guides
+  - [ ] See [OAuth2 Built-in Authentication Plan](../plans/oauth2-built-in-auth.md) for details
+
+---
+
 ## Current Focus
 
 **Phase**: 6 - Parallel Batch Execution
@@ -393,15 +429,27 @@ None currently identified.
 
 ## Metrics
 
-- **Total Tasks**: 67
+- **Total Tasks**: 72
 - **Completed Tasks**: 57
 - **In Progress Tasks**: 0
 - **Blocked Tasks**: 0
-- **Not Started Tasks**: 10 (Phase 6 & 7)
+- **Not Started Tasks**: 15 (Phase 6, 7, 8 & 9)
 
 ---
 
 ## Change Log
+
+### 2025-07-10 (OAuth2 Planning)
+- Phase 9 redesigned for OAuth2 as built-in authentication:
+  - OAuth2 added as a native auth type (alongside bearer and apikey)
+  - Support for device flow and authorization code flow (PKCE)
+  - Secure token storage using system keychains (keytar)
+  - Pre-configured provider templates for common services
+  - New auth commands for login/logout/status management
+  - Automatic token refresh and interactive setup flows
+  - Simpler implementation without plugin complexity
+  - See [OAuth2 Built-in Authentication Plan](../plans/oauth2-built-in-auth.md) for details
+  - Future plugin system documented separately in [Future Plugin System Design](../plans/future-plugin-system.md)
 
 ### 2025-07-11
 - Phase reorganization:
