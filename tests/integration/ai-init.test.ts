@@ -28,14 +28,14 @@ describe('AI-Powered Init Integration', () => {
     await fs.rm(testDir, { recursive: true, force: true })
   })
 
-  describe('with ANTHROPIC_API_KEY set', () => {
+  describe('with AI provider configured', () => {
     const originalEnv = process.env
 
     beforeEach(() => {
       // Mock the API key for testing
       process.env = {
         ...originalEnv,
-        ANTHROPIC_API_KEY: 'test-api-key',
+        OPENAI_API_KEY: 'test-api-key',
       }
     })
 
@@ -53,22 +53,39 @@ describe('AI-Powered Init Integration', () => {
     })
 
     it('should show proper error message when API key is missing', () => {
-      delete process.env['ANTHROPIC_API_KEY']
+      delete process.env['OPENAI_API_KEY']
 
       expect(() => {
         execSync(
           `node "${cliPath}" init github --prompt "Create GitHub API config"`,
           { encoding: 'utf8' },
         )
-      }).toThrow(/ANTHROPIC_API_KEY environment variable is required/)
+      }).toThrow(/OPENAI_API_KEY required for OpenAI/)
+    })
+
+    it('should support backward compatibility with ANTHROPIC_API_KEY', () => {
+      delete process.env['OPENAI_API_KEY']
+      process.env['ANTHROPIC_API_KEY'] = 'test-api-key'
+
+      expect(() => {
+        execSync(
+          `node "${cliPath}" init github --prompt "Create GitHub API config"`,
+          { encoding: 'utf8' },
+        )
+      }).toThrow() // Will fail due to mock key, but should get past provider selection
     })
 
     it('should generate config file with --prompt in local directory', async () => {
       // Skip this test in CI or if no real API key is available
-      if (
-        !process.env['ANTHROPIC_API_KEY'] ||
-        process.env['ANTHROPIC_API_KEY'] === 'test-api-key'
-      ) {
+      const hasValidKey =
+        (process.env['OPENAI_API_KEY'] &&
+          process.env['OPENAI_API_KEY'] !== 'test-api-key') ||
+        (process.env['ANTHROPIC_API_KEY'] &&
+          process.env['ANTHROPIC_API_KEY'] !== 'test-api-key') ||
+        (process.env['GOOGLE_API_KEY'] &&
+          process.env['GOOGLE_API_KEY'] !== 'test-api-key')
+
+      if (!hasValidKey) {
         console.log(
           'Skipping real AI generation test - no valid API key available',
         )

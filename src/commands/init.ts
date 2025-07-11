@@ -145,6 +145,7 @@ export class InitCommand extends BaseCommand<InitArgs> {
         template = await generator.generateConfig(
           args.serviceName,
           args.prompt,
+          { debug: args.debug },
         )
 
         const authType = template.authentication?.type ?? 'none'

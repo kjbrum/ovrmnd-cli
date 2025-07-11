@@ -1,4 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
+import {
+  AI_PROVIDERS,
+  type AIProviderConfig,
+} from '../types/ai-provider'
 import type { ServiceConfig } from '../types/config'
 import { validateServiceConfig } from '../config/validator'
 import { OvrmndError, ErrorCode } from '../utils/error'
@@ -6,26 +10,41 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 
 export class AIConfigGenerator {
-  private client: Anthropic
+  private client: OpenAI
+  private provider: AIProviderConfig
   private systemPromptCache: string | null = null
   private model: string
   private maxTokens: number | undefined
   private temperature: number
 
   constructor() {
-    const apiKey = process.env['ANTHROPIC_API_KEY']
-    if (!apiKey) {
+    // Determine provider (default to openai)
+    const providerName = process.env['AI_PROVIDER'] ?? 'openai'
+    const provider = AI_PROVIDERS[providerName]
+
+    if (!provider) {
       throw new OvrmndError({
         code: ErrorCode.CONFIG_INVALID,
-        message:
-          'ANTHROPIC_API_KEY environment variable is required for AI generation',
-        help: 'Set your API key: export ANTHROPIC_API_KEY="your-api-key"',
+        message: `Invalid AI provider: ${providerName}`,
+        help: 'Valid providers are: openai, anthropic, google',
       })
     }
 
-    // Read configuration from environment variables
-    this.model =
-      process.env['AI_MODEL'] ?? 'claude-3-5-haiku-20241022'
+    this.provider = provider
+
+    // Get API key for the selected provider
+    const apiKey = process.env[provider.apiKeyEnvVar]
+
+    if (!apiKey) {
+      throw new OvrmndError({
+        code: ErrorCode.CONFIG_INVALID,
+        message: `${provider.apiKeyEnvVar} required for ${provider.name}`,
+        help: `Set your API key: export ${provider.apiKeyEnvVar}="your-api-key"`,
+      })
+    }
+
+    // Read model configuration
+    this.model = process.env['AI_MODEL'] ?? provider.defaultModel
     this.maxTokens = process.env['AI_MAX_TOKENS']
       ? parseInt(process.env['AI_MAX_TOKENS'], 10)
       : undefined
@@ -57,7 +76,11 @@ export class AIConfigGenerator {
       })
     }
 
-    this.client = new Anthropic({ apiKey })
+    // Initialize OpenAI client with provider-specific configuration
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: provider.baseURL,
+    })
   }
 
   private async loadSystemPrompt(): Promise<string> {
@@ -92,6 +115,7 @@ export class AIConfigGenerator {
   async generateConfig(
     serviceName: string,
     prompt: string,
+    options?: { debug?: boolean },
   ): Promise<ServiceConfig> {
     // Load the system prompt template
     const promptTemplate = await this.loadSystemPrompt()
@@ -101,56 +125,62 @@ export class AIConfigGenerator {
       .replace('{serviceName}', serviceName)
       .replace('{prompt}', prompt)
 
+    // Log debug info if requested
+    if (options?.debug) {
+      console.error('[DEBUG] AI Configuration:')
+      console.error(`  Provider: ${this.provider.name}`)
+      console.error(`  Base URL: ${this.provider.baseURL}`)
+      console.error(`  Model: ${this.model}`)
+      console.error(`  Temperature: ${this.temperature}`)
+      console.error(`  Max Tokens: ${this.maxTokens ?? 4096}`)
+    }
+
     try {
-      // Use prompt caching for better performance and cost reduction
-      const messageParams: Anthropic.MessageCreateParamsNonStreaming =
-        {
-          model: this.model,
-          temperature: this.temperature,
-          system: [
-            {
-              type: 'text',
-              text: systemPrompt,
-              // Enable ephemeral caching for prompts > 1024 tokens
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: [
-            {
-              role: 'user',
-              content:
-                'Generate the ServiceConfig JSON based on the requirements above.',
-            },
-          ],
-          stream: false,
-          max_tokens: this.maxTokens ?? 4096, // Default to 4096 if not specified
-        }
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        temperature: this.temperature,
+        max_tokens: this.maxTokens ?? 4096,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content:
+              'Generate the ServiceConfig JSON based on the requirements above.',
+          },
+        ],
+      })
 
-      const response = (await this.client.messages.create(
-        messageParams,
-      )) as Anthropic.Message
-
-      // Extract JSON from the response
-      const content = response.content[0]
-      if (!content || content.type !== 'text') {
+      const content = response.choices[0]?.message?.content
+      if (!content) {
         throw new OvrmndError({
           code: ErrorCode.CONFIG_INVALID,
-          message: 'AI did not return text content',
+          message: 'AI did not return any content',
         })
       }
 
-      const configJson = this.extractJSON(content.text)
+      const configJson = this.extractJSON(content)
       return this.validateConfig(configJson)
     } catch (error) {
       if (error instanceof OvrmndError) {
         throw error
       }
 
-      if (error instanceof Anthropic.APIError) {
+      // Handle OpenAI SDK errors
+      if (
+        error instanceof Error &&
+        error.constructor.name === 'APIError'
+      ) {
+        const apiError = error as Error & {
+          status?: number
+          statusCode?: number
+        }
         throw new OvrmndError({
           code: ErrorCode.API_REQUEST_FAILED,
-          message: `AI API error: ${error.message}`,
-          help: 'Check your API key and try again',
+          message: `${this.provider.name} API error: ${apiError.message}`,
+          help: this.getProviderSpecificHelp(apiError),
         })
       }
 
@@ -158,6 +188,36 @@ export class AIConfigGenerator {
         code: ErrorCode.UNKNOWN_ERROR,
         message: `Failed to generate config: ${error instanceof Error ? error.message : 'Unknown error'}`,
       })
+    }
+  }
+
+  private getProviderSpecificHelp(error: {
+    status?: number
+    statusCode?: number
+  }): string {
+    const statusCode = error.status ?? error.statusCode
+
+    switch (this.provider.name) {
+      case 'OpenAI':
+        if (statusCode === 401) return 'Check your OpenAI API key'
+        if (statusCode === 429)
+          return 'OpenAI rate limit exceeded. Please wait and try again'
+        return 'Check your OpenAI API key and account status'
+
+      case 'Anthropic':
+        if (statusCode === 401) return 'Check your Anthropic API key'
+        if (statusCode === 429)
+          return 'Anthropic rate limit exceeded. Please wait and try again'
+        return 'Check your Anthropic API key and account status'
+
+      case 'Google Gemini':
+        if (statusCode === 401) return 'Check your Google API key'
+        if (statusCode === 429)
+          return 'Google API quota exceeded. Please wait and try again'
+        return 'Check your Google API key and ensure Gemini API is enabled'
+
+      default:
+        return 'Check your API configuration and try again'
     }
   }
 

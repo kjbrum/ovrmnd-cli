@@ -1,9 +1,9 @@
 import { AIConfigGenerator } from '../../src/services/ai-config-generator'
 import { OvrmndError } from '../../src/utils/error'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-// Mock the Anthropic SDK
-jest.mock('@anthropic-ai/sdk')
+// Mock the OpenAI SDK
+jest.mock('openai')
 
 describe('AIConfigGenerator', () => {
   const mockApiKey = 'test-api-key'
@@ -11,7 +11,7 @@ describe('AIConfigGenerator', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env = { ...originalEnv, ANTHROPIC_API_KEY: mockApiKey }
+    process.env = { ...originalEnv }
   })
 
   afterEach(() => {
@@ -19,32 +19,73 @@ describe('AIConfigGenerator', () => {
   })
 
   describe('constructor', () => {
-    it('should throw error if API key is not set', () => {
-      delete process.env['ANTHROPIC_API_KEY']
-
+    it('should throw error if API key is not set for default provider', () => {
       expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
       expect(() => new AIConfigGenerator()).toThrow(
-        'ANTHROPIC_API_KEY environment variable is required for AI generation',
+        'OPENAI_API_KEY required for OpenAI',
       )
     })
 
-    it('should initialize client with API key', () => {
+    it('should initialize client with OpenAI API key by default', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
+
       new AIConfigGenerator()
 
-      expect(Anthropic).toHaveBeenCalledWith({ apiKey: mockApiKey })
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL: 'https://api.openai.com/v1',
+      })
+    })
+
+    it('should use Anthropic provider for backward compatibility', () => {
+      process.env['ANTHROPIC_API_KEY'] = mockApiKey
+
+      new AIConfigGenerator()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL: 'https://api.anthropic.com/v1',
+      })
+    })
+
+    it('should respect AI_PROVIDER environment variable', () => {
+      process.env['AI_PROVIDER'] = 'google'
+      process.env['GOOGLE_API_KEY'] = mockApiKey
+
+      new AIConfigGenerator()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL:
+          'https://generativelanguage.googleapis.com/v1beta/openai',
+      })
+    })
+
+    it('should throw error for invalid provider', () => {
+      process.env['AI_PROVIDER'] = 'invalid'
+
+      expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
+      expect(() => new AIConfigGenerator()).toThrow(
+        'Invalid AI provider: invalid',
+      )
     })
 
     it('should use custom model from environment variable', () => {
-      process.env['AI_MODEL'] = 'claude-3-5-sonnet-20241022'
+      process.env['OPENAI_API_KEY'] = mockApiKey
+      process.env['AI_MODEL'] = 'gpt-4-turbo'
 
       new AIConfigGenerator()
 
       // Model should be set but we can't directly access private property
       // Will be tested in generateConfig tests
-      expect(Anthropic).toHaveBeenCalledWith({ apiKey: mockApiKey })
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL: 'https://api.openai.com/v1',
+      })
     })
 
     it('should throw error for invalid AI_MAX_TOKENS', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
       process.env['AI_MAX_TOKENS'] = 'invalid'
 
       expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
@@ -59,6 +100,7 @@ describe('AIConfigGenerator', () => {
     })
 
     it('should throw error for invalid AI_TEMPERATURE', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
       process.env['AI_TEMPERATURE'] = 'invalid'
 
       expect(() => new AIConfigGenerator()).toThrow(OvrmndError)
@@ -78,9 +120,14 @@ describe('AIConfigGenerator', () => {
     let mockCreate: jest.Mock
 
     beforeEach(() => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
       mockCreate = jest.fn()
-      ;(Anthropic as unknown as jest.Mock).mockImplementation(() => ({
-        messages: { create: mockCreate },
+      ;(OpenAI as unknown as jest.Mock).mockImplementation(() => ({
+        chat: {
+          completions: {
+            create: mockCreate,
+          },
+        },
       }))
       generator = new AIConfigGenerator()
     })
@@ -116,10 +163,11 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify(mockConfig),
+            message: {
+              content: JSON.stringify(mockConfig),
+            },
           },
         ],
       })
@@ -131,26 +179,22 @@ describe('AIConfigGenerator', () => {
 
       expect(result).toEqual(mockConfig)
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'gpt-4o-mini',
         temperature: 0,
-        system: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'text',
-            text: expect.stringContaining(
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'system',
+            content: expect.stringContaining(
               '<service_name>github</service_name>',
             ),
-            cache_control: { type: 'ephemeral' },
-          }),
-        ]),
-        messages: [
+          },
           {
             role: 'user',
             content:
               'Generate the ServiceConfig JSON based on the requirements above.',
           },
         ],
-        stream: false,
-        max_tokens: 4096,
       })
     })
 
@@ -168,12 +212,13 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: `Here's the configuration:\n\`\`\`json\n${JSON.stringify(
-              mockConfig,
-            )}\n\`\`\`\n\nThis should work well!`,
+            message: {
+              content: `Here's the configuration:\n\`\`\`json\n${JSON.stringify(
+                mockConfig,
+              )}\n\`\`\`\n\nThis should work well!`,
+            },
           },
         ],
       })
@@ -186,15 +231,12 @@ describe('AIConfigGenerator', () => {
       expect(result).toEqual(mockConfig)
     })
 
-    it('should throw error if AI returns non-text content', async () => {
+    it('should throw error if AI returns no content', async () => {
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/png',
-              data: 'abc',
+            message: {
+              content: null,
             },
           },
         ],
@@ -202,15 +244,16 @@ describe('AIConfigGenerator', () => {
 
       await expect(
         generator.generateConfig('test', 'Create config'),
-      ).rejects.toThrow('AI did not return text content')
+      ).rejects.toThrow('AI did not return any content')
     })
 
     it('should throw error if no JSON found in response', async () => {
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: 'This is just plain text without any JSON',
+            message: {
+              content: 'This is just plain text without any JSON',
+            },
           },
         ],
       })
@@ -222,10 +265,11 @@ describe('AIConfigGenerator', () => {
 
     it('should throw error if JSON is invalid', async () => {
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: '{ invalid json without quotes }',
+            message: {
+              content: '{ invalid json without quotes }',
+            },
           },
         ],
       })
@@ -242,10 +286,11 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify(invalidConfig),
+            message: {
+              content: JSON.stringify(invalidConfig),
+            },
           },
         ],
       })
@@ -256,17 +301,14 @@ describe('AIConfigGenerator', () => {
     })
 
     it('should handle API errors gracefully', async () => {
-      const apiError = Object.create(Anthropic.APIError.prototype)
-      Object.assign(apiError, {
-        status: 400,
-        message: 'Invalid API key',
-        type: 'invalid_request_error',
-      })
+      const apiError = new Error('Invalid API key')
+      apiError.constructor = { name: 'APIError' } as any
+      ;(apiError as any).status = 401
       mockCreate.mockRejectedValue(apiError)
 
       await expect(
         generator.generateConfig('test', 'Create config'),
-      ).rejects.toThrow('AI API error: Invalid API key')
+      ).rejects.toThrow('OpenAI API error: Invalid API key')
     })
 
     it('should handle unknown errors', async () => {
@@ -278,7 +320,7 @@ describe('AIConfigGenerator', () => {
     })
 
     it('should use environment variables for model configuration', async () => {
-      process.env['AI_MODEL'] = 'claude-3-opus-20240229'
+      process.env['AI_MODEL'] = 'gpt-4-turbo'
       process.env['AI_MAX_TOKENS'] = '2000'
       process.env['AI_TEMPERATURE'] = '0.5'
 
@@ -286,20 +328,21 @@ describe('AIConfigGenerator', () => {
       generator = new AIConfigGenerator()
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify({
-              serviceName: 'test',
-              baseUrl: 'https://api.test.com',
-              endpoints: [
-                {
-                  name: 'list',
-                  method: 'GET',
-                  path: '/items',
-                },
-              ],
-            }),
+            message: {
+              content: JSON.stringify({
+                serviceName: 'test',
+                baseUrl: 'https://api.test.com',
+                endpoints: [
+                  {
+                    name: 'list',
+                    method: 'GET',
+                    path: '/items',
+                  },
+                ],
+              }),
+            },
           },
         ],
       })
@@ -307,37 +350,30 @@ describe('AIConfigGenerator', () => {
       await generator.generateConfig('test', 'Create config')
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-opus-20240229',
+        model: 'gpt-4-turbo',
         max_tokens: 2000,
         temperature: 0.5,
-        system: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'text',
-            text: expect.any(String),
-            cache_control: { type: 'ephemeral' },
-          }),
-        ]),
         messages: expect.any(Array),
-        stream: false,
       })
     })
 
     it('should include service name and prompt in system message', async () => {
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify({
-              serviceName: 'shopify',
-              baseUrl: 'https://api.shopify.com',
-              endpoints: [
-                {
-                  name: 'listProducts',
-                  method: 'GET',
-                  path: '/products',
-                },
-              ],
-            }),
+            message: {
+              content: JSON.stringify({
+                serviceName: 'shopify',
+                baseUrl: 'https://api.shopify.com',
+                endpoints: [
+                  {
+                    name: 'listProducts',
+                    method: 'GET',
+                    path: '/products',
+                  },
+                ],
+              }),
+            },
           },
         ],
       })
@@ -348,25 +384,27 @@ describe('AIConfigGenerator', () => {
       )
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'gpt-4o-mini',
         temperature: 0,
-        system: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'text',
-            text: expect.stringContaining(
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'system',
+            content: expect.stringContaining(
               '<service_name>shopify</service_name>',
             ),
-            cache_control: { type: 'ephemeral' },
-          }),
-        ]),
-        messages: expect.any(Array),
-        stream: false,
-        max_tokens: 4096,
+          },
+          {
+            role: 'user',
+            content:
+              'Generate the ServiceConfig JSON based on the requirements above.',
+          },
+        ],
       })
 
       // Also check for user request in the system prompt
-      const systemParam = mockCreate.mock.calls[0][0].system
-      expect(systemParam[0].text).toContain(
+      const systemMessage = mockCreate.mock.calls[0][0].messages[0]
+      expect(systemMessage.content).toContain(
         '<user_request>Find Shopify REST API docs for products</user_request>',
       )
     })
@@ -385,10 +423,11 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify(insecureConfig),
+            message: {
+              content: JSON.stringify(insecureConfig),
+            },
           },
         ],
       })
@@ -416,10 +455,11 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify(badConfig),
+            message: {
+              content: JSON.stringify(badConfig),
+            },
           },
         ],
       })
@@ -448,10 +488,11 @@ describe('AIConfigGenerator', () => {
       }
 
       mockCreate.mockResolvedValue({
-        content: [
+        choices: [
           {
-            type: 'text',
-            text: JSON.stringify(badConfig),
+            message: {
+              content: JSON.stringify(badConfig),
+            },
           },
         ],
       })
@@ -461,6 +502,77 @@ describe('AIConfigGenerator', () => {
       ).rejects.toThrow(
         'Potential hardcoded secret in endpoint "list" headers',
       )
+    })
+
+    it('should support debug mode', async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation()
+
+      mockCreate.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                serviceName: 'test',
+                baseUrl: 'https://api.test.com',
+                endpoints: [
+                  {
+                    name: 'list',
+                    method: 'GET',
+                    path: '/items',
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      })
+
+      await generator.generateConfig('test', 'Create config', {
+        debug: true,
+      })
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[DEBUG] AI Configuration:',
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Provider: OpenAI',
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Base URL: https://api.openai.com/v1',
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Model: gpt-4o-mini',
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should provide provider-specific error help', async () => {
+      // Test OpenAI rate limit error
+      const rateLimitError = new Error('Rate limit exceeded')
+      rateLimitError.constructor = { name: 'APIError' } as any
+      ;(rateLimitError as any).status = 429
+      mockCreate.mockRejectedValue(rateLimitError)
+
+      await expect(
+        generator.generateConfig('test', 'Create config'),
+      ).rejects.toThrow('OpenAI API error: Rate limit exceeded')
+
+      // Test with Google provider
+      process.env['AI_PROVIDER'] = 'google'
+      process.env['GOOGLE_API_KEY'] = mockApiKey
+      generator = new AIConfigGenerator()
+
+      const googleError = new Error('Invalid key')
+      googleError.constructor = { name: 'APIError' } as any
+      ;(googleError as any).status = 401
+      mockCreate.mockRejectedValue(googleError)
+
+      await expect(
+        generator.generateConfig('test', 'Create config'),
+      ).rejects.toThrow('Google Gemini API error: Invalid key')
     })
   })
 })

@@ -42,11 +42,11 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.56.0",
     "chalk": "^4.1.2",
     "dotenv": "^16.6.1",
     "flat-cache": "^5.0.0",
     "js-yaml": "^4.1.0",
+    "openai": "^5.9.0",
     "prompts": "^2.4.2",
     "winston": "^3.11.0",
     "yargs": "^17.7.2",

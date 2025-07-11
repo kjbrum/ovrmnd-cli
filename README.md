@@ -90,7 +90,7 @@ ovrmnd init github --interactive
 # Basic template
 ovrmnd init myapi
 
-# AI-powered generation (requires ANTHROPIC_API_KEY)
+# AI-powered generation (requires API key for chosen provider)
 ovrmnd init shopify --prompt "Find Shopify REST API docs for products and orders"
 ovrmnd init github --prompt "Create config for GitHub API repo management"
 
@@ -152,29 +152,70 @@ ovrmnd cache list github --verbose
 
 ## AI-Powered Configuration Generation
 
-Ovrmnd can use Claude to research APIs and generate configurations automatically.
+Ovrmnd can use AI to research APIs and generate configurations automatically. It supports multiple LLM providers including OpenAI, Anthropic (Claude), and Google Gemini.
 
-### Setup
+### Quick Start
 
-1. Get an Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
-2. Set the environment variable:
-   ```bash
-   export ANTHROPIC_API_KEY="your-api-key"
-   ```
+```bash
+# Using OpenAI (default)
+export OPENAI_API_KEY="sk-..."
+ovrmnd init shopify --prompt "Create config for Shopify REST API"
 
-### Configuration
+# Using Anthropic
+export AI_PROVIDER=anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+ovrmnd init github --prompt "Create GitHub API config"
+
+# Using Google Gemini
+export AI_PROVIDER=google
+export GOOGLE_API_KEY="..."
+ovrmnd init stripe --prompt "Create Stripe payment API config"
+```
+
+### Provider Configuration
+
+Ovrmnd supports multiple AI providers with a unified interface:
+
+| Provider | Environment Variables | Default Model | Notes |
+|----------|---------------------|---------------|-------|
+| OpenAI | `OPENAI_API_KEY` | `gpt-4o-mini` | Default provider, fast and cost-effective |
+| Anthropic | `ANTHROPIC_API_KEY` | `claude-3-5-haiku-20241022` | Excellent for API research |
+| Google | `GOOGLE_API_KEY` | `gemini-2.0-flash-exp` | Most cost-efficient option |
+
+#### Setting the Provider
+
+```bash
+# Option 1: Set the AI_PROVIDER environment variable
+export AI_PROVIDER=openai    # or anthropic, google
+
+# Option 2: Backward compatibility - if ANTHROPIC_API_KEY is set but AI_PROVIDER is not, Anthropic will be used
+export ANTHROPIC_API_KEY="your-key"  # Automatically uses Anthropic provider
+```
+
+#### Advanced Configuration
 
 You can customize the AI behavior using these environment variables:
 
-- `AI_MODEL` - Override the default model (default: `claude-3-5-haiku-20241022`)
-- `AI_MAX_TOKENS` - Set max response tokens (default: uses Claude's default)
+- `AI_MODEL` - Override the default model for your chosen provider
+- `AI_MAX_TOKENS` - Set max response tokens (default: 4096)
 - `AI_TEMPERATURE` - Set creativity level 0-1 (default: `0` for consistent output)
 
-Example:
+Examples:
 ```bash
-export AI_MODEL="claude-3-5-sonnet-20241022"  # Use a more capable model
-export AI_MAX_TOKENS="8000"                   # Allow longer responses
-export AI_TEMPERATURE="0.2"                   # Slightly more creative
+# OpenAI with GPT-4
+export AI_PROVIDER=openai
+export OPENAI_API_KEY="sk-..."
+export AI_MODEL="gpt-4-turbo"
+
+# Anthropic with Claude Opus
+export AI_PROVIDER=anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+export AI_MODEL="claude-3-5-sonnet-20241022"
+
+# Google with Gemini Pro
+export AI_PROVIDER=google
+export GOOGLE_API_KEY="..."
+export AI_MODEL="gemini-1.5-pro"
 ```
 
 ### Usage

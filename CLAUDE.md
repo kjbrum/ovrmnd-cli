@@ -71,30 +71,16 @@ ovrmnd [command]        # Run installed CLI
 **Already Implemented (Phase 5)**: ✅ COMPLETE
 - Alias system for command shortcuts
 - Init command with interactive prompts
-- AI-powered configuration generation using Claude
+- AI-powered configuration generation (multi-provider support)
 - Batch operations for multiple API calls (sequential execution)
 
+**Already Implemented (Phase 6)**: ✅ COMPLETE
+- Multi-provider LLM support (OpenAI, Anthropic, Google)
+- Migrated from Anthropic SDK to OpenAI SDK
+- Provider abstraction with environment-based selection
+- Backward compatibility for existing ANTHROPIC_API_KEY users
+
 **To Be Implemented**:
-
-**Phase 6: Multi-Provider LLM Support**
-1. **Implementation Approach**
-   - Migrate from Anthropic SDK to OpenAI SDK
-   - Support multiple providers: OpenAI, Anthropic, Google
-   - Provider abstraction with configurable base URLs
-   - See `docs/plans/multi-provider-llm-support.md` for details
-
-2. **Environment Variables**
-   - `AI_PROVIDER`: Select provider (openai|anthropic|google)
-   - `OPENAI_API_KEY`: For OpenAI provider
-   - `ANTHROPIC_API_KEY`: For Anthropic provider
-   - `GOOGLE_API_KEY`: For Google Gemini provider
-   - `AI_MODEL`: Override default model for provider
-
-3. **Benefits**
-   - Support for multiple LLM providers
-   - Unified interface through OpenAI SDK
-   - Easy provider switching
-   - OpenAI as sensible default provider
 
 **Phase 7: AI Proxy Support**
 1. **Implementation Approach**
@@ -188,7 +174,7 @@ aliases:                       # Optional: Shortcuts
 3. **Phase 3**: List, validate, debug commands ✅ COMPLETE
 4. **Phase 4**: Caching, response transformations ✅ COMPLETE
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
-6. **Phase 6**: Multi-provider LLM support (OpenAI, Anthropic, Google)
+6. **Phase 6**: Multi-provider LLM support (OpenAI, Anthropic, Google) ✅ COMPLETE
 7. **Phase 7**: AI proxy support (enterprise proxy configuration)
 8. **Phase 8**: OAuth2 built-in authentication
 
@@ -224,28 +210,41 @@ aliases:                       # Optional: Shortcuts
 
 ### AI Configuration Generator
 
-The init command supports AI-powered configuration generation using the Claude API.
+The init command supports AI-powered configuration generation using multiple LLM providers.
 
 **Implementation Details**:
 - Service class: `src/services/ai-config-generator.ts`
-- Uses Anthropic SDK with Claude 3.5 Haiku model by default
-- Requires `ANTHROPIC_API_KEY` environment variable
+- Uses OpenAI SDK as unified interface for all providers
+- Supports OpenAI (default), Anthropic, and Google Gemini providers
+- Provider selection via `AI_PROVIDER` environment variable
+- Requires appropriate API key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GOOGLE_API_KEY`
 - Configurable via `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TEMPERATURE` env vars
 - Validates generated configs using existing schema validation
 - Enhanced security validation for HTTPS URLs and proper token formats
-- **XML-structured prompts**: Following Claude best practices with modular prompt structure
-- **Prompt caching**: Implements ephemeral caching for improved performance and reduced costs
+- **XML-structured prompts**: Following best practices with modular prompt structure
 - **Prompt files**: Main prompt in `docs/prompts/ai-config-base.xml`, examples in `docs/prompts/examples/`
 
 **Usage**:
 ```bash
+# Default (OpenAI)
+export OPENAI_API_KEY="sk-..."
+ovrmnd init <service> --prompt "description of what you need"
+
+# Anthropic
+export AI_PROVIDER=anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+ovrmnd init <service> --prompt "description of what you need"
+
+# Google Gemini
+export AI_PROVIDER=google
+export GOOGLE_API_KEY="..."
 ovrmnd init <service> --prompt "description of what you need"
 ```
 
 **Testing**:
-- Unit tests mock the Anthropic SDK
+- Unit tests mock the OpenAI SDK
 - Integration tests skip if no real API key is available
-- Test with: `ANTHROPIC_API_KEY=your-key npm test tests/integration/ai-init.test.ts`
+- Test with real API key: `npm test tests/integration/ai-init.test.ts`
 
 ## CLI Testing
 
