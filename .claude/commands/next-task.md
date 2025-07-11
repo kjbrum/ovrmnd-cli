@@ -90,7 +90,6 @@ npm run format      # Format code with Prettier
 </instructions>
 
 <additional_notes>
-- Phase 2 is currently in progress (65% complete)
 - Authentication and HTTP client are implemented
 - Next major tasks: Call command implementation and output formatting
 - Always update `PROGRESS.md` after completing tasks
