@@ -16,6 +16,7 @@ export class AIConfigGenerator {
   private model: string
   private maxTokens: number | undefined
   private temperature: number
+  private usingProxy: boolean = false
 
   constructor() {
     // Determine provider (default to openai)
@@ -32,14 +33,21 @@ export class AIConfigGenerator {
 
     this.provider = provider
 
+    // Check for proxy configuration first
+    const proxyUrl = process.env['AI_PROXY_URL']
+    const proxyToken = process.env['AI_PROXY_TOKEN']
+
     // Get API key for the selected provider
     const apiKey = process.env[provider.apiKeyEnvVar]
 
-    if (!apiKey) {
+    // If using proxy with token, API key is optional
+    if (!apiKey && !(proxyUrl && proxyToken)) {
       throw new OvrmndError({
         code: ErrorCode.CONFIG_INVALID,
         message: `${provider.apiKeyEnvVar} required for ${provider.name}`,
-        help: `Set your API key: export ${provider.apiKeyEnvVar}="your-api-key"`,
+        help: proxyUrl
+          ? `Set your API key or AI_PROXY_TOKEN: export ${provider.apiKeyEnvVar}="your-api-key" or export AI_PROXY_TOKEN="your-proxy-token"`
+          : `Set your API key: export ${provider.apiKeyEnvVar}="your-api-key"`,
       })
     }
 
@@ -76,11 +84,35 @@ export class AIConfigGenerator {
       })
     }
 
-    // Initialize OpenAI client with provider-specific configuration
-    this.client = new OpenAI({
-      apiKey,
-      baseURL: provider.baseURL,
-    })
+    if (proxyUrl) {
+      this.usingProxy = true
+      // Override the provider's base URL with proxy URL
+      const effectiveApiKey = proxyToken ?? apiKey ?? 'dummy-key' // Use proxy token if provided, fallback to API key or dummy
+
+      this.client = new OpenAI({
+        apiKey: effectiveApiKey,
+        baseURL: proxyUrl,
+      })
+
+      // Log proxy configuration in debug mode
+      if (process.env['DEBUG']) {
+        console.error(`[DEBUG] Using AI proxy: ${proxyUrl}`)
+      }
+    } else {
+      // Use provider's default configuration
+      this.client = new OpenAI({
+        apiKey: apiKey!,
+        baseURL: provider.baseURL,
+      })
+    }
+  }
+
+  private getModelName(): string {
+    // When using proxy, some providers need special prefixes
+    if (this.usingProxy && this.provider.modelPrefix) {
+      return `${this.provider.modelPrefix}${this.model}`
+    }
+    return this.model
   }
 
   private async loadSystemPrompt(): Promise<string> {
@@ -129,15 +161,18 @@ export class AIConfigGenerator {
     if (options?.debug) {
       console.error('[DEBUG] AI Configuration:')
       console.error(`  Provider: ${this.provider.name}`)
-      console.error(`  Base URL: ${this.provider.baseURL}`)
-      console.error(`  Model: ${this.model}`)
+      console.error(`  Using Proxy: ${this.usingProxy}`)
+      console.error(
+        `  Base URL: ${this.usingProxy ? process.env['AI_PROXY_URL'] : this.provider.baseURL}`,
+      )
+      console.error(`  Model: ${this.getModelName()}`)
       console.error(`  Temperature: ${this.temperature}`)
       console.error(`  Max Tokens: ${this.maxTokens ?? 4096}`)
     }
 
     try {
       const response = await this.client.chat.completions.create({
-        model: this.model,
+        model: this.getModelName(),
         temperature: this.temperature,
         max_tokens: this.maxTokens ?? 4096,
         messages: [
@@ -179,11 +214,24 @@ export class AIConfigGenerator {
         }
         throw new OvrmndError({
           code: ErrorCode.API_REQUEST_FAILED,
-          message: `${this.provider.name} API error: ${apiError.message}`,
+          message: `${this.usingProxy ? 'Proxy' : this.provider.name} API error: ${apiError.message}`,
           help: this.getProviderSpecificHelp(apiError),
         })
       }
 
+      // Check for common connection errors
+      if (error instanceof Error) {
+        if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+          throw new OvrmndError({
+            code: ErrorCode.API_REQUEST_FAILED,
+            message: `Failed to connect to ${this.usingProxy ? 'proxy' : 'API'}: ${error.message}`,
+            help: this.usingProxy
+              ? 'Check that your proxy URL is correct and accessible'
+              : 'Check your internet connection and API endpoint',
+          })
+        }
+      }
+      
       throw new OvrmndError({
         code: ErrorCode.UNKNOWN_ERROR,
         message: `Failed to generate config: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -196,6 +244,16 @@ export class AIConfigGenerator {
     statusCode?: number
   }): string {
     const statusCode = error.status ?? error.statusCode
+
+    if (this.usingProxy) {
+      if (statusCode === 401)
+        return 'Check your AI_PROXY_TOKEN or proxy authentication'
+      if (statusCode === 404)
+        return 'Proxy URL may be incorrect or endpoint not found'
+      if (statusCode === 502)
+        return 'Proxy server error - check if proxy is running'
+      return 'Check your proxy configuration (AI_PROXY_URL and AI_PROXY_TOKEN)'
+    }
 
     switch (this.provider.name) {
       case 'OpenAI':

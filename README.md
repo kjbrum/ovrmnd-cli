@@ -218,6 +218,40 @@ export GOOGLE_API_KEY="..."
 export AI_MODEL="gemini-1.5-pro"
 ```
 
+#### AI Proxy Configuration
+
+Ovrmnd supports using proxy servers for AI calls, enabling enterprise environments with corporate AI proxies. This works with any configured provider (OpenAI, Anthropic, Google).
+
+```bash
+# Configure your provider first
+export AI_PROVIDER=openai
+export OPENAI_API_KEY="sk-..."
+
+# Then add proxy configuration
+export AI_PROXY_URL="https://proxy.shopify.ai"
+export AI_PROXY_TOKEN="proxy-token-123"  # Optional, defaults to provider's API key
+
+# Generate configuration through proxy
+ovrmnd init myservice --prompt "Configure service for..."
+```
+
+**Proxy Environment Variables:**
+
+- `AI_PROXY_URL` - URL of the AI proxy server (e.g., `https://proxy.shopify.ai`)
+- `AI_PROXY_TOKEN` - Authentication token for the proxy (optional, defaults to provider's API key)
+
+**When to Use a Proxy:**
+
+- Your organization requires all AI calls to go through a corporate proxy
+- You're using a custom LLM gateway that provides an OpenAI-compatible API
+- You need to route requests through a specific endpoint for compliance or monitoring
+
+**Requirements:**
+
+- The proxy must support OpenAI-compatible endpoints (`/v1/chat/completions`)
+- HTTPS is required for proxy URLs
+- The proxy works with any configured provider
+
 ### Usage
 
 Use the `--prompt` flag with the `init` command to describe what you need:

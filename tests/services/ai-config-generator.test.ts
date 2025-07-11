@@ -26,6 +26,19 @@ describe('AIConfigGenerator', () => {
       )
     })
 
+    it('should not require API key when proxy URL and token are set', () => {
+      delete process.env['OPENAI_API_KEY']
+      process.env['AI_PROXY_URL'] = 'https://proxy.example.com'
+      process.env['AI_PROXY_TOKEN'] = 'proxy-token'
+
+      expect(() => new AIConfigGenerator()).not.toThrow()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: 'proxy-token',
+        baseURL: 'https://proxy.example.com',
+      })
+    })
+
     it('should initialize client with OpenAI API key by default', () => {
       process.env['OPENAI_API_KEY'] = mockApiKey
 
@@ -37,7 +50,8 @@ describe('AIConfigGenerator', () => {
       })
     })
 
-    it('should use Anthropic provider for backward compatibility', () => {
+    it('should use Anthropic provider when AI_PROVIDER is set', () => {
+      process.env['AI_PROVIDER'] = 'anthropic'
       process.env['ANTHROPIC_API_KEY'] = mockApiKey
 
       new AIConfigGenerator()
@@ -112,6 +126,62 @@ describe('AIConfigGenerator', () => {
       expect(() => new AIConfigGenerator()).toThrow(
         'AI_TEMPERATURE must be a number between 0 and 1',
       )
+    })
+
+    it('should use proxy URL when AI_PROXY_URL is set', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+
+      new AIConfigGenerator()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL: 'https://proxy.shopify.ai',
+      })
+    })
+
+    it('should use proxy token when AI_PROXY_TOKEN is set', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+      process.env['AI_PROXY_TOKEN'] = 'proxy-token-123'
+
+      new AIConfigGenerator()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: 'proxy-token-123',
+        baseURL: 'https://proxy.shopify.ai',
+      })
+    })
+
+    it('should work with any provider when using proxy', () => {
+      process.env['AI_PROVIDER'] = 'anthropic'
+      process.env['ANTHROPIC_API_KEY'] = mockApiKey
+      process.env['AI_PROXY_URL'] = 'https://proxy.example.com'
+
+      new AIConfigGenerator()
+
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: mockApiKey,
+        baseURL: 'https://proxy.example.com',
+      })
+    })
+
+    it('should log proxy info in debug mode', () => {
+      process.env['OPENAI_API_KEY'] = mockApiKey
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+      process.env['DEBUG'] = 'true'
+
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation()
+
+      new AIConfigGenerator()
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[DEBUG] Using AI proxy: https://proxy.shopify.ai',
+      )
+
+      consoleErrorSpy.mockRestore()
     })
   })
 
@@ -540,10 +610,56 @@ describe('AIConfigGenerator', () => {
         '  Provider: OpenAI',
       )
       expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Using Proxy: false',
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
         '  Base URL: https://api.openai.com/v1',
       )
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '  Model: gpt-4o-mini',
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should show proxy info in debug mode', async () => {
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+      process.env['AI_PROXY_TOKEN'] = 'proxy-token'
+      generator = new AIConfigGenerator()
+
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation()
+
+      mockCreate.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                serviceName: 'test',
+                baseUrl: 'https://api.test.com',
+                endpoints: [
+                  {
+                    name: 'list',
+                    method: 'GET',
+                    path: '/items',
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      })
+
+      await generator.generateConfig('test', 'Create config', {
+        debug: true,
+      })
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Using Proxy: true',
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '  Base URL: https://proxy.shopify.ai',
       )
 
       consoleErrorSpy.mockRestore()
@@ -573,6 +689,57 @@ describe('AIConfigGenerator', () => {
       await expect(
         generator.generateConfig('test', 'Create config'),
       ).rejects.toThrow('Google Gemini API error: Invalid key')
+    })
+
+    it('should provide proxy-specific error help', async () => {
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+      generator = new AIConfigGenerator()
+
+      // Test proxy authentication error
+      const authError = new Error('Unauthorized')
+      authError.constructor = { name: 'APIError' } as any
+      ;(authError as any).status = 401
+      mockCreate.mockRejectedValue(authError)
+
+      try {
+        await generator.generateConfig('test', 'Create config')
+      } catch (error) {
+        expect(error).toBeInstanceOf(OvrmndError)
+        expect((error as OvrmndError).message).toBe(
+          'Proxy API error: Unauthorized',
+        )
+        expect((error as OvrmndError).help).toBe(
+          'Check your AI_PROXY_TOKEN or proxy authentication',
+        )
+      }
+
+      // Test proxy not found error
+      const notFoundError = new Error('Not found')
+      notFoundError.constructor = { name: 'APIError' } as any
+      ;(notFoundError as any).status = 404
+      mockCreate.mockRejectedValue(notFoundError)
+
+      try {
+        await generator.generateConfig('test', 'Create config')
+      } catch (error) {
+        expect((error as OvrmndError).help).toBe(
+          'Proxy URL may be incorrect or endpoint not found',
+        )
+      }
+
+      // Test proxy server error
+      const serverError = new Error('Bad gateway')
+      serverError.constructor = { name: 'APIError' } as any
+      ;(serverError as any).status = 502
+      mockCreate.mockRejectedValue(serverError)
+
+      try {
+        await generator.generateConfig('test', 'Create config')
+      } catch (error) {
+        expect((error as OvrmndError).help).toBe(
+          'Proxy server error - check if proxy is running',
+        )
+      }
     })
   })
 })

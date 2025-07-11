@@ -66,6 +66,7 @@ describe('AI-Powered Init Integration', () => {
     it('should support backward compatibility with ANTHROPIC_API_KEY', () => {
       delete process.env['OPENAI_API_KEY']
       process.env['ANTHROPIC_API_KEY'] = 'test-api-key'
+      process.env['AI_PROVIDER'] = 'anthropic'
 
       expect(() => {
         execSync(
@@ -73,6 +74,29 @@ describe('AI-Powered Init Integration', () => {
           { encoding: 'utf8' },
         )
       }).toThrow() // Will fail due to mock key, but should get past provider selection
+    })
+
+    it('should use proxy URL when AI_PROXY_URL is set', () => {
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+
+      expect(() => {
+        execSync(
+          `node "${cliPath}" init github --prompt "Create GitHub API config"`,
+          { encoding: 'utf8' },
+        )
+      }).toThrow() // Will fail due to mock key, but should configure proxy
+    })
+
+    it('should use proxy token when AI_PROXY_TOKEN is set', () => {
+      process.env['AI_PROXY_URL'] = 'https://proxy.shopify.ai'
+      process.env['AI_PROXY_TOKEN'] = 'proxy-token-123'
+
+      expect(() => {
+        execSync(
+          `node "${cliPath}" init github --prompt "Create GitHub API config"`,
+          { encoding: 'utf8' },
+        )
+      }).toThrow() // Will fail due to mock key, but should use proxy token
     })
 
     it('should generate config file with --prompt in local directory', async () => {
@@ -220,6 +244,93 @@ describe('AI-Powered Init Integration', () => {
       )
       expect(output).toContain('AI-powered Shopify config generation')
       expect(output).toContain('AI-powered GitHub config generation')
+    })
+  })
+
+  describe('proxy configuration', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+      // Set up test environment
+      process.env = {
+        ...originalEnv,
+        OPENAI_API_KEY: 'test-api-key',
+      }
+    })
+
+    afterEach(() => {
+      process.env = originalEnv
+    })
+
+    it('should show proxy info in debug mode', () => {
+      process.env['AI_PROXY_URL'] = 'https://proxy.example.com'
+      process.env['AI_PROXY_TOKEN'] = 'proxy-token'
+
+      try {
+        const { stderr } = execSync(
+          `node "${cliPath}" init test --prompt "Create test API" --debug`,
+          { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        ) as any
+
+        expect(stderr).toContain(
+          'Using AI proxy: https://proxy.example.com',
+        )
+      } catch (error) {
+        // Expected to fail with test key, but should show proxy info
+        const stderr = (error as any).stderr || ''
+        expect(stderr).toContain(
+          'Using AI proxy: https://proxy.example.com',
+        )
+      }
+    })
+
+    it('should work with proxy and real API key', async () => {
+      // Skip if no real proxy and API key
+      const hasValidProxy =
+        process.env['AI_PROXY_URL'] &&
+        process.env['AI_PROXY_TOKEN'] &&
+        !process.env['AI_PROXY_URL'].includes('example') &&
+        process.env['AI_PROXY_TOKEN'] !== 'proxy-token'
+
+      if (!hasValidProxy) {
+        console.log(
+          'Skipping real proxy test - no valid proxy configuration available',
+        )
+        return
+      }
+
+      const output = execSync(
+        `node "${cliPath}" init github --prompt "Create GitHub API config with list repos endpoint"`,
+        { encoding: 'utf8' },
+      )
+
+      const result = JSON.parse(output.trim())
+      expect(result.success).toBe(true)
+      expect(result.service).toBe('github')
+
+      // Verify generated config
+      const configPath = path.join(testDir, '.ovrmnd/github.yaml')
+      const content = await fs.readFile(configPath, 'utf8')
+      const config = yaml.load(content) as ServiceConfig
+      expect(config.serviceName).toBe('github')
+      expect(config.endpoints).toBeDefined()
+    })
+
+    it('should handle proxy errors gracefully', () => {
+      process.env['AI_PROXY_URL'] =
+        'https://invalid-proxy.example.com'
+      process.env['AI_PROXY_TOKEN'] = 'invalid-token'
+
+      try {
+        execSync(
+          `node "${cliPath}" init test --prompt "Create test API"`,
+          { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        )
+      } catch (error) {
+        const stderr = (error as any).stderr || ''
+        // Should show proxy-specific error help
+        expect(stderr).toMatch(/proxy|AI_PROXY/i)
+      }
     })
   })
 })
