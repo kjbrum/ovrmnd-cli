@@ -182,47 +182,7 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
 
 ---
 
-## Phase 6: Parallel Batch Execution
-
-**Goal**: Enhance batch operations with concurrent execution for improved performance
-
-### Tasks:
-1. **T-01: Parallel Execution Core**
-   - Add --parallel flag for concurrent execution
-   - Implement concurrency limiting (--concurrency flag)
-   - Promise pool pattern for controlled parallelism
-   - Preserve result order despite parallel execution
-
-2. **T-02: Rate Limiting**
-   - Add rate limiting support (--rate-limit flag)
-   - Token bucket algorithm implementation
-   - Configurable requests per second
-   - Automatic retry on rate limit errors (429)
-
-3. **T-03: Enhanced Progress Tracking**
-   - Real-time progress updates for parallel operations
-   - Display concurrent request count
-   - Show completion rate and estimated time
-   - Consider progress bar library integration
-
-4. **T-04: Advanced Error Handling**
-   - Fail-fast mode with request cancellation
-   - AbortController for in-flight request cancellation
-   - Detailed error aggregation with indices
-   - Partial result handling
-
-5. **T-05: Configuration Support**
-   - YAML configuration for rate limits
-   - Per-endpoint concurrency settings
-   - Default retry policies
-   - See [Parallel Batch Execution Plan](plans/parallel-batch-execution.md)
-
-### Dependencies: Phase 5 (specifically batch operations)
-### Estimated Duration: 2-3 days
-
----
-
-## Phase 7: Multi-Provider LLM Support
+## Phase 6: Multi-Provider LLM Support
 
 **Goal**: Add support for multiple LLM providers (OpenAI, Anthropic, Google) using the OpenAI SDK as a unified interface
 
@@ -261,7 +221,7 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
 
 ---
 
-## Phase 8: AI Proxy Support
+## Phase 7: AI Proxy Support
 
 **Goal**: Enable AI calls through corporate proxy servers for any configured provider
 
@@ -286,7 +246,7 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
    - Enterprise configuration examples
    - Integration tests with proxy
 
-### Dependencies: Phase 7 (Multi-provider support)
+### Dependencies: Phase 6 (Multi-provider support)
 ### Estimated Duration: 1 day
 
 ---

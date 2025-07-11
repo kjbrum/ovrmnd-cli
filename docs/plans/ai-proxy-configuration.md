@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the implementation plan for adding proxy support to the multi-provider LLM system. Building on Phase 7's provider abstraction, this feature enables AI calls through corporate proxy servers for any configured provider.
+This document outlines the implementation plan for adding proxy support to the multi-provider LLM system. Building on Phase 6's provider abstraction, this feature enables AI calls through corporate proxy servers for any configured provider.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ This document outlines the implementation plan for adding proxy support to the m
 
 ### 1. Prerequisites
 
-This phase builds on Phase 7, which has already:
+This phase builds on Phase 6, which has already:
 - Migrated to OpenAI SDK
 - Implemented provider abstraction
 - Removed Anthropic SDK dependency
@@ -30,11 +30,11 @@ This phase builds on Phase 7, which has already:
 ### 2. Environment Variable Support
 
 ```bash
-# Select your provider (from Phase 7)
+# Select your provider (from Phase 6)
 export AI_PROVIDER=openai|anthropic|google
 export OPENAI_API_KEY=sk-xxxxx        # or ANTHROPIC_API_KEY, GOOGLE_API_KEY
 
-# Add proxy configuration (Phase 8)
+# Add proxy configuration (Phase 7)
 export AI_PROXY_URL=https://proxy.shopify.ai
 export AI_PROXY_TOKEN=shopify-xxxxx  # Optional, defaults to provider's API key
 ```
@@ -64,7 +64,7 @@ export class AIConfigGenerator {
   private usingProxy: boolean = false
   
   constructor() {
-    // ... existing provider selection logic from Phase 7 ...
+    // ... existing provider selection logic from Phase 6 ...
     
     // Check for proxy configuration
     const proxyUrl = process.env['AI_PROXY_URL']
@@ -301,7 +301,7 @@ Document the proxy-specific environment variables:
 
 ## Implementation Notes
 
-1. **Builds on Phase 7**: Requires provider abstraction from multi-provider support
+1. **Builds on Phase 6**: Requires provider abstraction from multi-provider support
 2. **Provider Agnostic**: Proxy works with any configured provider
 3. **Base URL Override**: Proxy URL replaces provider's base URL when configured
 4. **Token Handling**: AI_PROXY_TOKEN is optional, falls back to provider's API key

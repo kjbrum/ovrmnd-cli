@@ -7,6 +7,7 @@ This file documents important learnings and findings from building this project.
 - Phase-based development worked well - each phase delivers incremental value
 - Test-driven development caught many edge cases early
 - TypeScript strict mode is challenging but prevents runtime errors
+- Phase prioritization is important - moved parallel batch execution to future enhancements to focus on higher-value features first (LLM support, proxy, OAuth2)
 
 ## Coding
 

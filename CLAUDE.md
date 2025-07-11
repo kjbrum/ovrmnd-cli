@@ -76,38 +76,7 @@ ovrmnd [command]        # Run installed CLI
 
 **To Be Implemented**:
 
-**Phase 6: Parallel Batch Execution**
-1. **Parallel Execution Core** (`src/commands/call.ts`)
-   - Add --parallel flag for concurrent execution
-   - Implement concurrency limiting (--concurrency flag)
-   - Promise pool pattern for controlled parallelism
-   - Preserve result order despite parallel execution
-
-2. **Rate Limiting**
-   - Add rate limiting support (--rate-limit flag)
-   - Token bucket algorithm implementation
-   - Configurable requests per second
-   - Automatic retry on rate limit errors (429)
-
-3. **Enhanced Progress Tracking**
-   - Real-time progress updates for parallel operations
-   - Display concurrent request count
-   - Show completion rate and estimated time
-   - Consider progress bar library integration
-
-4. **Advanced Error Handling**
-   - Fail-fast mode with request cancellation
-   - AbortController for in-flight request cancellation
-   - Detailed error aggregation with indices
-   - Partial result handling
-
-5. **Configuration Support**
-   - YAML configuration for rate limits
-   - Per-endpoint concurrency settings
-   - Default retry policies
-   - See `docs/plans/parallel-batch-execution.md` for details
-
-**Phase 7: Multi-Provider LLM Support**
+**Phase 6: Multi-Provider LLM Support**
 1. **Implementation Approach**
    - Migrate from Anthropic SDK to OpenAI SDK
    - Support multiple providers: OpenAI, Anthropic, Google
@@ -127,9 +96,9 @@ ovrmnd [command]        # Run installed CLI
    - Easy provider switching
    - OpenAI as sensible default provider
 
-**Phase 8: AI Proxy Support**
+**Phase 7: AI Proxy Support**
 1. **Implementation Approach**
-   - Build on Phase 7's provider system
+   - Build on Phase 6's provider system
    - Add proxy URL override for any provider
    - Support enterprise proxy configurations
    - See `docs/plans/ai-proxy-configuration.md` for details
@@ -143,7 +112,7 @@ ovrmnd [command]        # Run installed CLI
    - Works with any configured provider
    - Simple base URL override mechanism
 
-**Phase 9: OAuth2 Built-in Authentication**
+**Phase 8: OAuth2 Built-in Authentication**
 1. **OAuth2 as Native Auth Type**
    - OAuth2 added alongside bearer and apikey types
    - No plugin system needed - built directly into CLI
@@ -164,6 +133,11 @@ ovrmnd [command]        # Run installed CLI
    - `ovrmnd auth list` - List authenticated services
 
 **Additional Features** (Future enhancements)
+   - Parallel batch execution with concurrency control
+     - Add --parallel flag for concurrent execution
+     - Rate limiting and concurrency limits
+     - Progress tracking for parallel operations
+     - See `docs/plans/parallel-batch-execution.md` for details
    - Plugin system for extensibility (see `docs/plans/future-plugin-system.md`)
    - Global config override with --config flag
    - WebSocket support for real-time APIs
@@ -214,10 +188,9 @@ aliases:                       # Optional: Shortcuts
 3. **Phase 3**: List, validate, debug commands ✅ COMPLETE
 4. **Phase 4**: Caching, response transformations ✅ COMPLETE
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
-6. **Phase 6**: Parallel batch execution (performance enhancement)
-7. **Phase 7**: Multi-provider LLM support (OpenAI, Anthropic, Google)
-8. **Phase 8**: AI proxy support (enterprise proxy configuration)
-9. **Phase 9**: OAuth2 built-in authentication
+6. **Phase 6**: Multi-provider LLM support (OpenAI, Anthropic, Google)
+7. **Phase 7**: AI proxy support (enterprise proxy configuration)
+8. **Phase 8**: OAuth2 built-in authentication
 
 ## Development Guidelines
 
