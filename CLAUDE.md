@@ -260,6 +260,9 @@ The init command supports AI-powered configuration generation using the Claude A
 - Configurable via `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TEMPERATURE` env vars
 - Validates generated configs using existing schema validation
 - Enhanced security validation for HTTPS URLs and proper token formats
+- **XML-structured prompts**: Following Claude best practices with modular prompt structure
+- **Prompt caching**: Implements ephemeral caching for improved performance and reduced costs
+- **Prompt files**: Main prompt in `docs/prompts/ai-config-base.xml`, examples in `docs/prompts/examples/`
 
 **Usage**:
 ```bash

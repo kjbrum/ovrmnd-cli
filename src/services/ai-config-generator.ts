@@ -52,8 +52,7 @@ export class AIConfigGenerator {
     ) {
       throw new OvrmndError({
         code: ErrorCode.CONFIG_INVALID,
-        message:
-          'AI_TEMPERATURE must be a number between 0 and 1',
+        message: 'AI_TEMPERATURE must be a number between 0 and 1',
         help: 'Set a valid value: export AI_TEMPERATURE="0"',
       })
     }
@@ -66,23 +65,20 @@ export class AIConfigGenerator {
       return this.systemPromptCache
     }
 
+    // Load the new XML-based prompt
     const promptPath = path.join(
       __dirname,
       '..',
       '..',
       'docs',
-      'ai-config-prompt.md',
+      'prompts',
+      'ai-config-base.xml',
     )
 
     try {
       const content = await fs.readFile(promptPath, 'utf-8')
-
-      // Skip the markdown title and get the prompt content
-      const lines = content.split('\n')
-      const promptContent = lines.slice(2).join('\n').trim()
-
-      this.systemPromptCache = promptContent
-      return promptContent
+      this.systemPromptCache = content
+      return content
     } catch (error) {
       throw new OvrmndError({
         code: ErrorCode.FILE_ERROR,
@@ -106,11 +102,19 @@ export class AIConfigGenerator {
       .replace('{prompt}', prompt)
 
     try {
+      // Use prompt caching for better performance and cost reduction
       const messageParams: Anthropic.MessageCreateParamsNonStreaming =
         {
           model: this.model,
           temperature: this.temperature,
-          system: systemPrompt,
+          system: [
+            {
+              type: 'text',
+              text: systemPrompt,
+              // Enable ephemeral caching for prompts > 1024 tokens
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
           messages: [
             {
               role: 'user',

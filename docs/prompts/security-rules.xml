@@ -1,0 +1,94 @@
+<security_requirements critical="true" version="1.0.0">
+  <description>
+    Security rules for AI-generated configurations. These rules are non-negotiable
+    and must be enforced for all generated configurations.
+  </description>
+
+  <documentation_sources>
+    <rule id="official-only">
+      <description>Only research official API documentation websites</description>
+      <allowed_patterns>
+        <pattern>docs.*</pattern>
+        <pattern>api.*</pattern>
+        <pattern>developer.*</pattern>
+        <pattern>*.dev</pattern>
+        <pattern>Official product websites</pattern>
+      </allowed_patterns>
+      <forbidden>
+        <source>User-generated content sites</source>
+        <source>Forums (StackOverflow, Reddit, etc.)</source>
+        <source>Unofficial tutorials or blog posts</source>
+      </forbidden>
+    </rule>
+  </documentation_sources>
+
+  <configuration_content>
+    <rule id="no-executable-code">
+      <description>Never include executable code in configurations</description>
+      <forbidden>
+        <item>Shell commands</item>
+        <item>Scripts or code snippets</item>
+        <item>Binary data</item>
+        <item>File paths to executables</item>
+      </forbidden>
+    </rule>
+
+    <rule id="json-only">
+      <description>Only generate JSON that matches ServiceConfig interface</description>
+      <requirement>Valid JSON syntax</requirement>
+      <requirement>Matches TypeScript interface exactly</requirement>
+      <requirement>No additional properties</requirement>
+    </rule>
+  </configuration_content>
+
+  <sensitive_data>
+    <rule id="env-vars-only">
+      <description>All sensitive values must use environment variables</description>
+      <pattern>^\$\{[A-Z_][A-Z0-9_]*\}$</pattern>
+      <applies_to>
+        <field>authentication.token</field>
+        <field>Any header containing 'key', 'token', 'auth', 'secret'</field>
+        <field>Any value that appears to be a credential</field>
+      </applies_to>
+      <examples>
+        <valid>${GITHUB_TOKEN}</valid>
+        <valid>${API_KEY}</valid>
+        <valid>${STRIPE_SECRET_KEY}</valid>
+        <invalid>sk_test_1234567890</invalid>
+        <invalid>ghp_abcdef123456</invalid>
+      </examples>
+    </rule>
+
+    <rule id="https-only">
+      <description>All API endpoints must use HTTPS</description>
+      <requirement>baseUrl must start with https://</requirement>
+      <exception>localhost URLs for local development only</exception>
+    </rule>
+  </sensitive_data>
+
+  <header_validation>
+    <rule id="no-hardcoded-auth">
+      <description>Authentication headers must not contain hardcoded values</description>
+      <check>
+        Headers with names containing: auth, key, token, secret, credential, password
+        must have values using ${ENV_VAR} format
+      </check>
+    </rule>
+
+    <rule id="standard-headers">
+      <description>Use standard header names</description>
+      <preferred>
+        <header name="Authorization" for="bearer tokens" />
+        <header name="X-API-Key" for="API keys" />
+        <header name="Content-Type" value="application/json" />
+      </preferred>
+    </rule>
+  </header_validation>
+
+  <enforcement>
+    <action>Validate all generated configs before returning</action>
+    <action>Reject configs that violate any security rule</action>
+    <action>Provide clear error messages for violations</action>
+    <action>Never attempt to work around security rules</action>
+  </enforcement>
+</security_requirements>

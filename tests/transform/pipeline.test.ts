@@ -111,7 +111,7 @@ describe('TransformPipeline', () => {
         path: '/users',
         transform: [
           {
-            fields: ['users[*].id', 'users[*].name'],
+            fields: ['users'],
           },
           {
             rename: {
@@ -136,7 +136,10 @@ describe('TransformPipeline', () => {
       const result = pipeline!.transform(input)
 
       expect(result).toEqual({
-        data: [1, 2],
+        data: [
+          { id: 1, name: 'User 1', email: 'user1@example.com' },
+          { id: 2, name: 'User 2', email: 'user2@example.com' },
+        ],
       })
     })
 

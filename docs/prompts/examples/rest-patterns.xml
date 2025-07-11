@@ -1,0 +1,133 @@
+<rest_patterns version="1.0.0">
+  <description>Common REST API patterns and best practices for configuration</description>
+  
+  <pattern name="pagination">
+    <description>Standard pagination parameters</description>
+    <query_params>
+      <param name="page" type="number" default="1" />
+      <param name="per_page" type="number" default="20" />
+      <param name="limit" type="number" default="20" />
+      <param name="offset" type="number" default="0" />
+    </query_params>
+    <example>
+      {
+        "defaultParams": {
+          "page": 1,
+          "per_page": 50
+        }
+      }
+    </example>
+  </pattern>
+  
+  <pattern name="filtering">
+    <description>Common filtering parameters</description>
+    <query_params>
+      <param name="status" type="string" />
+      <param name="from_date" type="string" format="ISO8601" />
+      <param name="to_date" type="string" format="ISO8601" />
+      <param name="sort" type="string" values="asc|desc" />
+      <param name="order_by" type="string" />
+    </query_params>
+  </pattern>
+  
+  <pattern name="search">
+    <description>Search endpoint patterns</description>
+    <endpoints>
+      <endpoint>
+        <path>/search</path>
+        <path>/{resource}/search</path>
+        <query_params>
+          <param name="q" type="string" required="true" />
+          <param name="type" type="string" />
+          <param name="limit" type="number" />
+        </query_params>
+      </endpoint>
+    </endpoints>
+  </pattern>
+  
+  <pattern name="bulk_operations">
+    <description>Bulk create/update/delete patterns</description>
+    <endpoints>
+      <endpoint action="bulk_create">
+        <method>POST</method>
+        <path>/{resources}/bulk</path>
+        <body>Array of resource objects</body>
+      </endpoint>
+      <endpoint action="bulk_update">
+        <method>PATCH</method>
+        <path>/{resources}/bulk</path>
+        <body>Array of {id, updates} objects</body>
+      </endpoint>
+      <endpoint action="bulk_delete">
+        <method>DELETE</method>
+        <path>/{resources}/bulk</path>
+        <body>Array of IDs</body>
+      </endpoint>
+    </endpoints>
+  </pattern>
+  
+  <pattern name="nested_resources">
+    <description>Resources nested under parent resources</description>
+    <example>
+      <parent>users</parent>
+      <child>posts</child>
+      <endpoints>
+        <endpoint name="listUserPosts">
+          <path>/users/{userId}/posts</path>
+        </endpoint>
+        <endpoint name="createUserPost">
+          <path>/users/{userId}/posts</path>
+        </endpoint>
+      </endpoints>
+    </example>
+  </pattern>
+  
+  <pattern name="file_upload">
+    <description>File upload endpoints</description>
+    <configuration>
+      {
+        "headers": {
+          "Content-Type": "multipart/form-data"
+        }
+      }
+    </configuration>
+    <note>Binary uploads typically use multipart/form-data</note>
+  </pattern>
+  
+  <pattern name="versioning">
+    <description>API versioning patterns</description>
+    <types>
+      <type name="url_path">
+        <example>/v1/resources</example>
+        <example>/api/v2/resources</example>
+      </type>
+      <type name="header">
+        <example>X-API-Version: 2</example>
+      </type>
+      <type name="query_param">
+        <example>/resources?version=2</example>
+      </type>
+    </types>
+  </pattern>
+  
+  <pattern name="rate_limiting_headers">
+    <description>Common rate limiting response headers</description>
+    <headers>
+      <header name="X-RateLimit-Limit" description="Request limit per window" />
+      <header name="X-RateLimit-Remaining" description="Requests remaining" />
+      <header name="X-RateLimit-Reset" description="Window reset timestamp" />
+    </headers>
+  </pattern>
+  
+  <pattern name="standard_errors">
+    <description>Standard HTTP error responses</description>
+    <errors>
+      <error code="400" meaning="Bad Request" />
+      <error code="401" meaning="Unauthorized" />
+      <error code="403" meaning="Forbidden" />
+      <error code="404" meaning="Not Found" />
+      <error code="429" meaning="Too Many Requests" />
+      <error code="500" meaning="Internal Server Error" />
+    </errors>
+  </pattern>
+</rest_patterns>

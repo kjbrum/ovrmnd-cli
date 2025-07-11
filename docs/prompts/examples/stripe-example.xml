@@ -1,0 +1,137 @@
+<example service="stripe" category="payments">
+  <description>Stripe API configuration for payment processing</description>
+  <documentation>https://docs.stripe.com/api</documentation>
+  
+  <config>
+{
+  "serviceName": "stripe",
+  "baseUrl": "https://api.stripe.com/v1",
+  "authentication": {
+    "type": "bearer",
+    "token": "${STRIPE_SECRET_KEY}"
+  },
+  "endpoints": [
+    {
+      "name": "listCustomers",
+      "method": "GET",
+      "path": "/customers",
+      "cacheTTL": 300,
+      "defaultParams": {
+        "limit": 100
+      },
+      "transform": {
+        "fields": ["id", "email", "name", "created", "metadata"]
+      }
+    },
+    {
+      "name": "getCustomer",
+      "method": "GET",
+      "path": "/customers/{id}",
+      "cacheTTL": 600
+    },
+    {
+      "name": "createCustomer",
+      "method": "POST",
+      "path": "/customers",
+      "headers": {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    },
+    {
+      "name": "listCharges",
+      "method": "GET",
+      "path": "/charges",
+      "cacheTTL": 120,
+      "defaultParams": {
+        "limit": 100
+      },
+      "transform": {
+        "fields": ["id", "amount", "currency", "status", "customer", "created", "description"]
+      }
+    },
+    {
+      "name": "createCharge",
+      "method": "POST",
+      "path": "/charges",
+      "headers": {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      "defaultParams": {
+        "currency": "usd"
+      }
+    },
+    {
+      "name": "listPaymentIntents",
+      "method": "GET",
+      "path": "/payment_intents",
+      "cacheTTL": 60,
+      "defaultParams": {
+        "limit": 100
+      }
+    },
+    {
+      "name": "createPaymentIntent",
+      "method": "POST",
+      "path": "/payment_intents",
+      "headers": {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      "defaultParams": {
+        "currency": "usd",
+        "automatic_payment_methods[enabled]": true
+      }
+    },
+    {
+      "name": "listProducts",
+      "method": "GET",
+      "path": "/products",
+      "cacheTTL": 3600,
+      "defaultParams": {
+        "limit": 100,
+        "active": true
+      }
+    },
+    {
+      "name": "createProduct",
+      "method": "POST",
+      "path": "/products",
+      "headers": {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    }
+  ],
+  "aliases": [
+    {
+      "name": "recent-payments",
+      "endpoint": "listPaymentIntents",
+      "args": {
+        "limit": 10
+      }
+    },
+    {
+      "name": "active-products",
+      "endpoint": "listProducts",
+      "args": {
+        "active": true,
+        "limit": 50
+      }
+    },
+    {
+      "name": "failed-charges",
+      "endpoint": "listCharges",
+      "args": {
+        "status": "failed",
+        "limit": 50
+      }
+    }
+  ]
+}
+  </config>
+  
+  <usage_notes>
+    <note>Stripe uses URL-encoded form data for POST requests</note>
+    <note>All amounts are in cents (smallest currency unit)</note>
+    <note>Use test keys (sk_test_*) for development</note>
+    <note>Idempotency keys recommended for POST requests</note>
+  </usage_notes>
+</example>

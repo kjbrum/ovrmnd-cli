@@ -1,0 +1,112 @@
+<example service="github" category="version-control">
+  <description>GitHub REST API v3 configuration with common endpoints</description>
+  <documentation>https://docs.github.com/en/rest</documentation>
+  
+  <config>
+{
+  "serviceName": "github",
+  "baseUrl": "https://api.github.com",
+  "authentication": {
+    "type": "bearer",
+    "token": "${GITHUB_TOKEN}"
+  },
+  "endpoints": [
+    {
+      "name": "listRepos",
+      "method": "GET",
+      "path": "/user/repos",
+      "cacheTTL": 300,
+      "defaultParams": {
+        "per_page": 100,
+        "sort": "updated"
+      },
+      "transform": {
+        "fields": ["id", "name", "full_name", "private", "html_url", "description", "language", "updated_at"]
+      }
+    },
+    {
+      "name": "getRepo",
+      "method": "GET",
+      "path": "/repos/{owner}/{repo}",
+      "cacheTTL": 600
+    },
+    {
+      "name": "createRepo",
+      "method": "POST",
+      "path": "/user/repos",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "defaultParams": {
+        "private": false,
+        "auto_init": true
+      }
+    },
+    {
+      "name": "listIssues",
+      "method": "GET",
+      "path": "/repos/{owner}/{repo}/issues",
+      "cacheTTL": 120,
+      "defaultParams": {
+        "state": "open",
+        "per_page": 30
+      },
+      "transform": {
+        "fields": ["id", "number", "title", "state", "user.login", "created_at", "updated_at", "labels"]
+      }
+    },
+    {
+      "name": "createIssue",
+      "method": "POST",
+      "path": "/repos/{owner}/{repo}/issues",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "name": "searchRepos",
+      "method": "GET",
+      "path": "/search/repositories",
+      "cacheTTL": 300,
+      "defaultParams": {
+        "per_page": 30,
+        "sort": "stars"
+      }
+    }
+  ],
+  "aliases": [
+    {
+      "name": "my-public-repos",
+      "endpoint": "listRepos",
+      "args": {
+        "type": "public",
+        "sort": "updated"
+      }
+    },
+    {
+      "name": "my-private-repos",
+      "endpoint": "listRepos",
+      "args": {
+        "type": "private",
+        "sort": "updated"
+      }
+    },
+    {
+      "name": "trending-repos",
+      "endpoint": "searchRepos",
+      "args": {
+        "q": "stars:>1000",
+        "sort": "stars",
+        "order": "desc"
+      }
+    }
+  ]
+}
+  </config>
+  
+  <usage_notes>
+    <note>Requires a GitHub personal access token with appropriate scopes</note>
+    <note>Rate limits: 5000 requests/hour for authenticated requests</note>
+    <note>Use pagination parameters (page, per_page) for list endpoints</note>
+  </usage_notes>
+</example>

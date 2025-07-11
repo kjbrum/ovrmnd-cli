@@ -876,3 +876,54 @@ Documented separately for when it's actually needed:
 3. Implement device and browser flows
 4. Add auth commands (login, logout, status, list)
 5. Create provider templates for common services
+
+## AI Prompt Enhancement with XML Structure
+
+### Migration to XML-Based Prompts
+Following Claude's best practices documentation, migrated from markdown-based prompts to XML structure:
+1. **Better structure**: XML tags provide clear semantic boundaries
+2. **Improved parsing**: Claude responds better to XML-tagged instructions
+3. **Modular design**: Separated prompts into multiple files for maintainability
+
+### Prompt Architecture Changes
+```
+docs/prompts/
+├── ai-config-base.xml      # Main prompt with XML structure
+├── security-rules.xml      # Security requirements module
+└── examples/              # Service-specific examples
+    ├── github-example.xml
+    ├── stripe-example.xml
+    ├── rest-patterns.xml
+    └── auth-patterns.xml
+```
+
+### Key XML Elements Added
+1. **Role and metadata tags**: Clear definition of AI's role and prompt version
+2. **Structured process steps**: Each step has action, instructions, criteria
+3. **Security requirements**: Marked as critical="true" for emphasis
+4. **Context management**: Priority system for handling large contexts
+5. **Validation rules**: Explicit patterns and requirements for each field
+
+### Prompt Caching Implementation
+- Updated Anthropic SDK usage to support prompt caching
+- Changed system parameter from string to array format:
+  ```typescript
+  system: [{
+    type: 'text',
+    text: systemPrompt,
+    cache_control: { type: 'ephemeral' }
+  }]
+  ```
+- Benefits: Reduced costs for repeated API calls, faster response times
+- Caching applies to prompts > 1024 tokens (our prompt exceeds this)
+
+### Testing Considerations
+- Updated all tests to expect array format for system parameter
+- Used `expect.arrayContaining()` and `expect.objectContaining()` for flexible assertions
+- Tests check for cache_control presence in system parameter
+
+### Results
+- More consistent AI-generated configurations
+- Better adherence to security guidelines
+- Clearer error messages when generation fails
+- Reduced API costs through caching

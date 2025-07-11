@@ -299,7 +299,7 @@ describe('ValidateCommand', () => {
 
         expect(processExitSpy).toHaveBeenCalledWith(1)
         expect(processStderrSpy).toHaveBeenCalledWith(
-          expect.stringContaining('✖ Validation failed'),
+          expect.stringContaining('ERROR: Validation failed'),
         )
       })
 
@@ -320,7 +320,7 @@ describe('ValidateCommand', () => {
         expect(processExitSpy).toHaveBeenCalledWith(1)
         expect(processStderrSpy).toHaveBeenCalledWith(
           expect.stringContaining(
-            '✖ Validation failed (strict mode)',
+            'ERROR: Validation failed (strict mode)',
           ),
         )
       })
@@ -339,7 +339,7 @@ describe('ValidateCommand', () => {
 
         expect(processExitSpy).not.toHaveBeenCalled()
         expect(processStderrSpy).toHaveBeenCalledWith(
-          expect.stringContaining('✓ Validation passed'),
+          expect.stringContaining('SUCCESS: Validation passed'),
         )
       })
     })
@@ -359,7 +359,7 @@ describe('ValidateCommand', () => {
         ).rejects.toThrow('process.exit')
 
         expect(processStderrSpy).toHaveBeenCalledWith(
-          expect.stringContaining('ERROR: ✖ Error: Test error'),
+          expect.stringContaining('ERROR: Error: Test error'),
         )
         expect(processStderrSpy).toHaveBeenCalledWith(
           expect.stringContaining('Line 10: some context'),
@@ -378,7 +378,7 @@ describe('ValidateCommand', () => {
         } as any)
 
         expect(processStderrSpy).toHaveBeenCalledWith(
-          expect.stringContaining('⚠ Warning: Test warning'),
+          expect.stringContaining('WARNING: Warning: Test warning'),
         )
         expect(processStderrSpy).toHaveBeenCalledWith(
           expect.stringContaining('Suggestion: Fix this'),

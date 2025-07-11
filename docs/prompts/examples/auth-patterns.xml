@@ -1,0 +1,147 @@
+<auth_patterns version="1.0.0">
+  <description>Common authentication patterns for REST APIs</description>
+  
+  <pattern name="bearer_token">
+    <description>OAuth 2.0 Bearer Token authentication</description>
+    <configuration>
+      {
+        "authentication": {
+          "type": "bearer",
+          "token": "${SERVICE_ACCESS_TOKEN}"
+        }
+      }
+    </configuration>
+    <header>Authorization: Bearer ${TOKEN}</header>
+    <common_env_vars>
+      <var>GITHUB_TOKEN</var>
+      <var>GITLAB_TOKEN</var>
+      <var>DIGITALOCEAN_TOKEN</var>
+    </common_env_vars>
+    <notes>
+      <note>Used by most modern APIs</note>
+      <note>Token usually obtained via OAuth flow</note>
+      <note>May expire and need refresh</note>
+    </notes>
+  </pattern>
+  
+  <pattern name="api_key">
+    <description>Simple API Key authentication</description>
+    <variants>
+      <variant name="x-api-key">
+        <configuration>
+          {
+            "authentication": {
+              "type": "apikey",
+              "token": "${SERVICE_API_KEY}",
+              "header": "X-API-Key"
+            }
+          }
+        </configuration>
+        <header>X-API-Key: ${API_KEY}</header>
+      </variant>
+      
+      <variant name="custom-header">
+        <configuration>
+          {
+            "authentication": {
+              "type": "apikey",
+              "token": "${SERVICE_API_KEY}",
+              "header": "X-Service-Auth"
+            }
+          }
+        </configuration>
+        <header>X-Service-Auth: ${API_KEY}</header>
+      </variant>
+      
+      <variant name="authorization-apikey">
+        <configuration>
+          {
+            "authentication": {
+              "type": "apikey",
+              "token": "${SERVICE_API_KEY}",
+              "header": "Authorization"
+            }
+          }
+        </configuration>
+        <header>Authorization: Apikey ${API_KEY}</header>
+      </variant>
+    </variants>
+    <common_env_vars>
+      <var>STRIPE_API_KEY</var>
+      <var>SENDGRID_API_KEY</var>
+      <var>OPENAI_API_KEY</var>
+    </common_env_vars>
+  </pattern>
+  
+  <pattern name="basic_auth">
+    <description>HTTP Basic Authentication (not directly supported)</description>
+    <note>Currently not supported by Ovrmnd CLI</note>
+    <workaround>
+      Can be implemented using custom Authorization header:
+      {
+        "endpoints": [{
+          "headers": {
+            "Authorization": "Basic ${BASE64_CREDENTIALS}"
+          }
+        }]
+      }
+      Where BASE64_CREDENTIALS = base64(username:password)
+    </workaround>
+  </pattern>
+  
+  <pattern name="query_param_auth">
+    <description>Authentication via query parameter (discouraged)</description>
+    <note>Not recommended for security reasons</note>
+    <workaround>
+      Can be added as defaultParams:
+      {
+        "endpoints": [{
+          "defaultParams": {
+            "api_key": "${API_KEY}"
+          }
+        }]
+      }
+    </workaround>
+  </pattern>
+  
+  <pattern name="multiple_auth_headers">
+    <description>APIs requiring multiple authentication headers</description>
+    <example service="some-enterprise-api">
+      {
+        "authentication": {
+          "type": "apikey",
+          "token": "${PRIMARY_API_KEY}",
+          "header": "X-API-Key"
+        },
+        "endpoints": [{
+          "headers": {
+            "X-API-Secret": "${API_SECRET}",
+            "X-Tenant-ID": "${TENANT_ID}"
+          }
+        }]
+      }
+    </example>
+  </pattern>
+  
+  <pattern name="oauth2_flows">
+    <description>OAuth 2.0 flows (future support)</description>
+    <flows>
+      <flow name="device_code">
+        <description>Best for CLI applications</description>
+        <status>Planned for Phase 9</status>
+      </flow>
+      <flow name="authorization_code_pkce">
+        <description>Secure flow with PKCE</description>
+        <status>Planned for Phase 9</status>
+      </flow>
+    </flows>
+  </pattern>
+  
+  <security_best_practices>
+    <practice>Always use environment variables for secrets</practice>
+    <practice>Never commit tokens to version control</practice>
+    <practice>Use HTTPS for all API calls</practice>
+    <practice>Rotate API keys regularly</practice>
+    <practice>Use least-privilege access tokens</practice>
+  </security_best_practices>
+</auth_patterns>

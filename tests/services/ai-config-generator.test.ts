@@ -36,9 +36,9 @@ describe('AIConfigGenerator', () => {
 
     it('should use custom model from environment variable', () => {
       process.env['AI_MODEL'] = 'claude-3-5-sonnet-20241022'
-      
+
       new AIConfigGenerator()
-      
+
       // Model should be set but we can't directly access private property
       // Will be tested in generateConfig tests
       expect(Anthropic).toHaveBeenCalledWith({ apiKey: mockApiKey })
@@ -71,7 +71,6 @@ describe('AIConfigGenerator', () => {
         'AI_TEMPERATURE must be a number between 0 and 1',
       )
     })
-
   })
 
   describe('generateConfig', () => {
@@ -134,7 +133,15 @@ describe('AIConfigGenerator', () => {
       expect(mockCreate).toHaveBeenCalledWith({
         model: 'claude-3-5-haiku-20241022',
         temperature: 0,
-        system: expect.stringContaining('GitHub API'),
+        system: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'text',
+            text: expect.stringContaining(
+              '<service_name>github</service_name>',
+            ),
+            cache_control: { type: 'ephemeral' },
+          }),
+        ]),
         messages: [
           {
             role: 'user',
@@ -303,7 +310,13 @@ describe('AIConfigGenerator', () => {
         model: 'claude-3-opus-20240229',
         max_tokens: 2000,
         temperature: 0.5,
-        system: expect.any(String),
+        system: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'text',
+            text: expect.any(String),
+            cache_control: { type: 'ephemeral' },
+          }),
+        ]),
         messages: expect.any(Array),
         stream: false,
       })
@@ -337,22 +350,25 @@ describe('AIConfigGenerator', () => {
       expect(mockCreate).toHaveBeenCalledWith({
         model: 'claude-3-5-haiku-20241022',
         temperature: 0,
-        system: expect.stringContaining('Service name: shopify'),
+        system: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'text',
+            text: expect.stringContaining(
+              '<service_name>shopify</service_name>',
+            ),
+            cache_control: { type: 'ephemeral' },
+          }),
+        ]),
         messages: expect.any(Array),
         stream: false,
         max_tokens: 4096,
       })
 
-      expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-3-5-haiku-20241022',
-        temperature: 0,
-        system: expect.stringContaining(
-          'User request: Find Shopify REST API docs for products',
-        ),
-        messages: expect.any(Array),
-        stream: false,
-        max_tokens: 4096,
-      })
+      // Also check for user request in the system prompt
+      const systemParam = mockCreate.mock.calls[0][0].system
+      expect(systemParam[0].text).toContain(
+        '<user_request>Find Shopify REST API docs for products</user_request>',
+      )
     })
 
     it('should reject configs with HTTP base URLs', async () => {
@@ -410,7 +426,9 @@ describe('AIConfigGenerator', () => {
 
       await expect(
         generator.generateConfig('test', 'Create config'),
-      ).rejects.toThrow('Authentication token must use environment variable format')
+      ).rejects.toThrow(
+        'Authentication token must use environment variable format',
+      )
     })
 
     it('should reject configs with hardcoded secrets in headers', async () => {
@@ -440,7 +458,9 @@ describe('AIConfigGenerator', () => {
 
       await expect(
         generator.generateConfig('test', 'Create config'),
-      ).rejects.toThrow('Potential hardcoded secret in endpoint "list" headers')
+      ).rejects.toThrow(
+        'Potential hardcoded secret in endpoint "list" headers',
+      )
     })
   })
 })

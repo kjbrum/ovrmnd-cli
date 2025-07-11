@@ -4,7 +4,7 @@ import type {
   EndpointConfig,
 } from '../../src/types/config'
 import { DebugFormatter } from '../../src/utils/debug'
-import flatCache from 'flat-cache'
+import { CacheStorage } from '../../src/cache/storage'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -13,11 +13,10 @@ import os from 'os'
 const fetchMock = jest.fn()
 global.fetch = fetchMock
 
-// Mock flat-cache to control cache behavior
-jest.mock('flat-cache')
+// We'll use real CacheStorage with temp directory
 
 describe('Client Caching Integration', () => {
-  let mockCache: jest.Mocked<flatCache.Cache>
+  let mockCacheStorage: CacheStorage
   let debugFormatter: DebugFormatter
   let cacheDir: string
 
@@ -30,25 +29,25 @@ describe('Client Caching Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Create mock cache instance
-    mockCache = {
-      getKey: jest.fn(),
-      setKey: jest.fn(),
-      removeKey: jest.fn(),
-      save: jest.fn(),
-      destroy: jest.fn(),
-      keys: jest.fn(() => []),
-    } as unknown as jest.Mocked<flatCache.Cache>
+    // Set up test cache directory
+    cacheDir = path.join(
+      os.tmpdir(),
+      'ovrmnd-test-cache-' + Date.now(),
+    )
 
-    // Mock flatCache.load to return our mock
-    ;(flatCache.load as jest.Mock).mockReturnValue(mockCache)
+    // Create real cache storage with test directory
+    mockCacheStorage = new CacheStorage(cacheDir)
+
+    // Mock the methods as needed for specific tests
+    jest
+      .spyOn(mockCacheStorage, 'generateKey')
+      .mockReturnValue('test-cache-key')
+    jest.spyOn(mockCacheStorage, 'get')
+    jest.spyOn(mockCacheStorage, 'set')
 
     // Set up debug formatter
     debugFormatter = new DebugFormatter(true)
     jest.spyOn(debugFormatter, 'formatCacheInfo')
-
-    // Set up test cache directory
-    cacheDir = path.join(os.tmpdir(), 'ovrmnd-test-cache')
   })
 
   afterEach(() => {
@@ -69,12 +68,7 @@ describe('Client Caching Integration', () => {
 
     it('should return cached data on cache hit', async () => {
       const cachedData = { id: '123', name: 'John Doe' }
-      const cacheEntry = {
-        data: cachedData,
-        timestamp: Date.now(),
-        ttl: 300,
-      }
-      mockCache.getKey.mockReturnValue(cacheEntry)
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(cachedData)
 
       const result = await callEndpoint(
         mockConfig,
@@ -94,7 +88,7 @@ describe('Client Caching Integration', () => {
       })
 
       // Should check cache
-      expect(mockCache.getKey).toHaveBeenCalled()
+      expect(mockCacheStorage.get).toHaveBeenCalled()
 
       // Should NOT make HTTP request
       expect(fetchMock).not.toHaveBeenCalled()
@@ -109,7 +103,7 @@ describe('Client Caching Integration', () => {
     })
 
     it('should fetch and cache data on cache miss', async () => {
-      mockCache.getKey.mockReturnValue(undefined)
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(null)
 
       const responseData = { id: '123', name: 'John Doe' }
       fetchMock.mockResolvedValueOnce({
@@ -137,7 +131,7 @@ describe('Client Caching Integration', () => {
       })
 
       // Should check cache
-      expect(mockCache.getKey).toHaveBeenCalled()
+      expect(mockCacheStorage.get).toHaveBeenCalled()
 
       // Should make HTTP request
       expect(fetchMock).toHaveBeenCalledWith(
@@ -146,15 +140,16 @@ describe('Client Caching Integration', () => {
       )
 
       // Should cache the response
-      expect(mockCache.setKey).toHaveBeenCalledWith(
+      expect(mockCacheStorage.set).toHaveBeenCalledWith(
         expect.any(String),
+        responseData,
+        300,
         expect.objectContaining({
-          data: responseData,
-          ttl: 300,
-          timestamp: expect.any(Number),
+          service: 'test',
+          endpoint: 'getUser',
+          url: expect.stringContaining('/users/123'),
         }),
       )
-      expect(mockCache.save).toHaveBeenCalledWith(true)
 
       // Should log cache miss
       expect(debugFormatter.formatCacheInfo).toHaveBeenCalledWith(
@@ -166,13 +161,8 @@ describe('Client Caching Integration', () => {
     })
 
     it('should handle expired cache entries', async () => {
-      const cachedData = { id: '123', name: 'John Doe' }
-      const expiredEntry = {
-        data: cachedData,
-        timestamp: Date.now() - 400000, // 400 seconds ago
-        ttl: 300, // 5 minutes TTL
-      }
-      mockCache.getKey.mockReturnValue(expiredEntry)
+      // Mock cache returns null for expired entries (handled internally)
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(null)
 
       const newData = { id: '123', name: 'Jane Doe' }
       fetchMock.mockResolvedValueOnce({
@@ -192,24 +182,20 @@ describe('Client Caching Integration', () => {
 
       expect(result.data).toEqual(newData)
 
-      // Should remove expired entry
-      expect(mockCache.removeKey).toHaveBeenCalled()
-      expect(mockCache.save).toHaveBeenCalled()
-
       // Should make new HTTP request
       expect(fetchMock).toHaveBeenCalled()
 
       // Should cache new response
-      expect(mockCache.setKey).toHaveBeenCalledWith(
+      expect(mockCacheStorage.set).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({
-          data: newData,
-        }),
+        newData,
+        300,
+        expect.any(Object),
       )
     })
 
     it('should continue on cache read error', async () => {
-      mockCache.getKey.mockImplementation(() => {
+      ;(mockCacheStorage.get as jest.Mock).mockImplementation(() => {
         throw new Error('Cache read error')
       })
 
@@ -234,8 +220,8 @@ describe('Client Caching Integration', () => {
     })
 
     it('should continue on cache write error', async () => {
-      mockCache.getKey.mockReturnValue(undefined)
-      mockCache.setKey.mockImplementation(() => {
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(null)
+      ;(mockCacheStorage.set as jest.Mock).mockImplementation(() => {
         throw new Error('Cache write error')
       })
 
@@ -256,11 +242,11 @@ describe('Client Caching Integration', () => {
       expect(result.data).toEqual(responseData)
 
       // Should attempt to cache
-      expect(mockCache.setKey).toHaveBeenCalled()
+      expect(mockCacheStorage.set).toHaveBeenCalled()
     })
 
     it('should not cache non-200 responses', async () => {
-      mockCache.getKey.mockReturnValue(undefined)
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(null)
 
       fetchMock.mockResolvedValueOnce({
         ok: false,
@@ -277,7 +263,7 @@ describe('Client Caching Integration', () => {
       expect(result.success).toBe(false)
 
       // Should NOT cache error responses
-      expect(mockCache.setKey).not.toHaveBeenCalled()
+      expect(mockCacheStorage.set).not.toHaveBeenCalled()
     })
   })
 
@@ -303,8 +289,8 @@ describe('Client Caching Integration', () => {
       })
 
       // Should NOT check or set cache
-      expect(mockCache.getKey).not.toHaveBeenCalled()
-      expect(mockCache.setKey).not.toHaveBeenCalled()
+      expect(mockCacheStorage.get).not.toHaveBeenCalled()
+      expect(mockCacheStorage.set).not.toHaveBeenCalled()
     })
 
     it('should not use cache for GET requests without cacheTTL', async () => {
@@ -328,8 +314,8 @@ describe('Client Caching Integration', () => {
       })
 
       // Should NOT check or set cache
-      expect(mockCache.getKey).not.toHaveBeenCalled()
-      expect(mockCache.setKey).not.toHaveBeenCalled()
+      expect(mockCacheStorage.get).not.toHaveBeenCalled()
+      expect(mockCacheStorage.set).not.toHaveBeenCalled()
     })
   })
 
@@ -342,7 +328,7 @@ describe('Client Caching Integration', () => {
         cacheTTL: 300,
       }
 
-      mockCache.getKey.mockReturnValue(undefined)
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(null)
       fetchMock.mockResolvedValue({
         ok: true,
         status: 200,
@@ -362,7 +348,7 @@ describe('Client Caching Integration', () => {
       })
 
       // Should generate different cache keys
-      const setCalls = mockCache.setKey.mock.calls
+      const setCalls = mockCache.set.mock.calls
       expect(setCalls).toHaveLength(2)
       expect(setCalls[0]?.[0]).not.toBe(setCalls[1]?.[0])
     })
@@ -377,11 +363,7 @@ describe('Client Caching Integration', () => {
 
       // Set up first response in cache
       const cachedData = { id: '123', name: 'Cached User' }
-      mockCache.getKey.mockReturnValue({
-        data: cachedData,
-        timestamp: Date.now(),
-        ttl: 300,
-      })
+      ;(mockCacheStorage.get as jest.Mock).mockReturnValue(cachedData)
 
       // First call with auth token
       const configWithAuth1: ResolvedServiceConfig = {
@@ -414,7 +396,7 @@ describe('Client Caching Integration', () => {
       expect(result2.data).toEqual(cachedData)
 
       // Should have checked cache with same key both times
-      expect(mockCache.getKey).toHaveBeenCalledTimes(2)
+      expect(mockCacheStorage.get).toHaveBeenCalledTimes(2)
     })
   })
 })
