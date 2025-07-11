@@ -248,6 +248,88 @@ This document outlines the phased approach for implementing the Ovrmnd CLI tool.
 
 ### Dependencies: Phase 6 (Multi-provider support)
 ### Estimated Duration: 1 day
+### Status: ✅ Completed (2025-07-11)
+
+---
+
+## Phase 8: GraphQL Support
+
+**Goal**: Extend Ovrmnd CLI to support GraphQL APIs in addition to REST APIs
+
+### Tasks:
+1. **T-01: Core GraphQL Types**
+   - Add apiType field to ServiceConfig
+   - Create GraphQLOperationConfig interface
+   - Define GraphQL request/response types
+   - Add GraphQL-specific error types
+
+2. **T-02: GraphQL Client Implementation**
+   - Create GraphQL execution function
+   - Implement GraphQL request building
+   - Add GraphQL response parsing
+   - Handle GraphQL-specific errors
+
+3. **T-03: Configuration & Validation**
+   - Update config validator for GraphQL
+   - Add GraphQL query validation
+   - Support variable definitions
+   - Validate operation types
+
+4. **T-04: Integration with Existing Systems**
+   - Update call command for GraphQL routing
+   - Ensure authentication works for GraphQL
+   - Verify caching for GraphQL queries
+   - Test transformations on GraphQL responses
+
+5. **T-05: Testing & Documentation**
+   - Unit tests for GraphQL components
+   - Integration tests with real GraphQL APIs
+   - Update README with GraphQL examples
+   - Create GraphQL configuration guide
+   - See [GraphQL Support Plan](plans/graphql-support.md)
+
+### Dependencies: Phase 2 (Core API Execution)
+### Estimated Duration: 3-4 days
+
+---
+
+## Phase 9: OAuth2 Built-in Authentication
+
+**Goal**: Add OAuth2 as a native authentication type alongside bearer and apikey
+
+### Tasks:
+1. **T-01: Core OAuth2 Support**
+   - Extend AuthConfig type to include oauth2
+   - Implement secure token storage with keytar
+   - Create OAuth2Service class
+   - Update auth.ts to handle OAuth2 type
+
+2. **T-02: OAuth2 Flows**
+   - Implement device flow authentication
+   - Implement browser flow with PKCE
+   - Add automatic token refresh logic
+   - Handle token expiration gracefully
+
+3. **T-03: Auth Commands**
+   - Create auth login command
+   - Create auth status command
+   - Create auth logout command
+   - Create auth list command
+
+4. **T-04: Provider Support**
+   - Create common provider templates
+   - Update init command for OAuth2 setup
+   - Add provider detection logic
+   - Document provider configurations
+
+5. **T-05: Testing & Documentation**
+   - Unit tests for OAuth2Service
+   - Integration tests for auth commands
+   - Update README with OAuth2 examples
+   - Create provider setup guides
+
+### Dependencies: Phase 2 (Core API Execution)
+### Estimated Duration: 3-4 days
 
 ---
 

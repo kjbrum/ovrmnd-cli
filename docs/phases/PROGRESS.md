@@ -5,7 +5,7 @@
 This document tracks the implementation progress of the Ovrmnd CLI project. It provides real-time visibility into completed work, current focus, and upcoming tasks.
 
 **Last Updated**: 2025-07-11 (Phase 7 Complete)
-**Current Phase**: Phase 8 - Not Started
+**Current Phase**: Phase 8 - Planning
 **Overall Progress**: ~98%
 
 ---
@@ -21,7 +21,8 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 | Phase 5: Advanced Features | 🟢 Completed | 100% | 2025-07-08 | 2025-07-10 |
 | Phase 6: Multi-Provider LLM Support | 🟢 Completed | 100% | 2025-07-11 | 2025-07-11 |
 | Phase 7: AI Proxy Support | 🟢 Completed | 100% | 2025-07-11 | 2025-07-11 |
-| Phase 8: OAuth2 Built-in Authentication | 🔴 Not Started | 0% | - | - |
+| Phase 8: GraphQL Support | 🔴 Not Started | 0% | - | - |
+| Phase 9: OAuth2 Built-in Authentication | 🔴 Not Started | 0% | - | - |
 
 **Legend**: 🔴 Not Started | 🟡 In Progress | 🟢 Completed | ⏸️ Blocked
 
@@ -247,7 +248,43 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 ---
 
-## Phase 8: OAuth2 Built-in Authentication
+## Phase 8: GraphQL Support
+
+### Tasks:
+- [ ] **T-01: Core GraphQL Types**
+  - [ ] Add apiType field to ServiceConfig
+  - [ ] Create GraphQLOperationConfig interface
+  - [ ] Define GraphQL request/response types
+  - [ ] Add GraphQL-specific error types
+
+- [ ] **T-02: GraphQL Client Implementation**
+  - [ ] Create GraphQL execution function
+  - [ ] Implement GraphQL request building
+  - [ ] Add GraphQL response parsing
+  - [ ] Handle GraphQL-specific errors
+
+- [ ] **T-03: Configuration & Validation**
+  - [ ] Update config validator for GraphQL
+  - [ ] Add GraphQL query validation
+  - [ ] Support variable definitions
+  - [ ] Validate operation types
+
+- [ ] **T-04: Integration with Existing Systems**
+  - [ ] Update call command for GraphQL routing
+  - [ ] Ensure authentication works for GraphQL
+  - [ ] Verify caching for GraphQL queries
+  - [ ] Test transformations on GraphQL responses
+
+- [ ] **T-05: Testing & Documentation**
+  - [ ] Unit tests for GraphQL components
+  - [ ] Integration tests with real GraphQL APIs
+  - [ ] Update README with GraphQL examples
+  - [ ] Create GraphQL configuration guide
+  - [ ] See [GraphQL Support Plan](../plans/graphql-support.md) for details
+
+---
+
+## Phase 9: OAuth2 Built-in Authentication
 
 ### Tasks:
 - [ ] **T-01: Core OAuth2 Support**
@@ -300,16 +337,17 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 - Plugin system for extensibility (see `docs/plans/future-plugin-system.md`)
 - Global config override with --config flag
 - WebSocket support for real-time APIs
-- GraphQL support
 - Request/response middleware system
 - OAuth 1.0a support via plugins
+- GraphQL introspection and schema validation
+- GraphQL subscriptions via WebSocket
 
 ---
 
 ## Current Focus
 
-**Phase**: 8 - OAuth2 Built-in Authentication
-**Status**: Not Started
+**Phase**: 8 - GraphQL Support
+**Status**: Planning
 
 **Completed in Phase 7**:
 - AI Proxy Support: ✅ Complete
@@ -431,11 +469,15 @@ None currently identified.
 
 ## Next Steps
 
-1. Begin Phase 7: AI Proxy Support
-   - Add AI_PROXY_URL and AI_PROXY_TOKEN environment variables
-   - Override provider base URLs when proxy is configured
-   - Add proxy-specific error handling
-2. Complete Phase 8: OAuth2 Built-in Authentication
+1. Begin Phase 8: GraphQL Support
+   - Add GraphQL types and configuration
+   - Implement GraphQL client
+   - Integrate with existing systems
+   - Test with real GraphQL APIs (GitHub, Shopify)
+2. Complete Phase 9: OAuth2 Built-in Authentication
+   - Implement secure token storage with keytar
+   - Add OAuth2 flows (device flow, browser flow with PKCE)
+   - Create auth commands for login/logout/status
 3. Consider additional features or improvements
 4. Prepare for production release
 
@@ -443,11 +485,11 @@ None currently identified.
 
 ## Metrics
 
-- **Total Tasks**: 71
+- **Total Tasks**: 91
 - **Completed Tasks**: 67
 - **In Progress Tasks**: 0
 - **Blocked Tasks**: 0
-- **Not Started Tasks**: 4 (Phase 8 only)
+- **Not Started Tasks**: 24 (Phases 8 and 9)
 
 ---
 

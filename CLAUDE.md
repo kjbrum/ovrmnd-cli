@@ -90,7 +90,27 @@ ovrmnd [command]        # Run installed CLI
 
 **To Be Implemented**:
 
-**Phase 8: OAuth2 Built-in Authentication**
+**Phase 8: GraphQL Support**
+1. **GraphQL as Additional API Type**
+   - New `apiType` field in ServiceConfig (defaults to 'rest')
+   - GraphQL operations defined alongside REST endpoints
+   - Reuses existing auth, caching, and transformation systems
+   - See `docs/plans/graphql-support.md` for details
+
+2. **GraphQL Implementation**
+   - Native GraphQL client (no heavy dependencies)
+   - Support for queries and mutations
+   - Variable handling and validation
+   - GraphQL-specific error handling
+   - Operation name support
+
+3. **Configuration Pattern**
+   - GraphQL services use `graphqlOperations` instead of `endpoints`
+   - Single GraphQL endpoint per service
+   - Operations work like REST endpoints but with GraphQL queries
+   - Aliases and transforms work seamlessly
+
+**Phase 9: OAuth2 Built-in Authentication**
 1. **OAuth2 as Native Auth Type**
    - OAuth2 added alongside bearer and apikey types
    - No plugin system needed - built directly into CLI
@@ -119,12 +139,14 @@ ovrmnd [command]        # Run installed CLI
    - Plugin system for extensibility (see `docs/plans/future-plugin-system.md`)
    - Global config override with --config flag
    - WebSocket support for real-time APIs
-   - GraphQL support
    - Request/response middleware system
    - OAuth 1.0a support via plugins
+   - GraphQL introspection and schema validation
+   - GraphQL subscriptions via WebSocket
 
 ### YAML Configuration Pattern
 
+#### REST API Configuration
 ```yaml
 serviceName: string              # Required: Service identifier
 baseUrl: string                  # Required: Base API URL
@@ -143,6 +165,27 @@ aliases:                       # Optional: Shortcuts
   - name: string              # Alias identifier
     endpoint: string          # Target endpoint name
     args: object              # Pre-filled arguments
+```
+
+#### GraphQL API Configuration
+```yaml
+serviceName: string              # Required: Service identifier
+baseUrl: string                  # Required: Base API URL
+apiType: graphql                # Specify GraphQL API type
+graphqlEndpoint: string         # GraphQL endpoint path (e.g., /graphql)
+authentication:                  # Optional (same as REST)
+  type: bearer | apikey
+  token: ${ENV_VAR}
+graphqlOperations:              # GraphQL operations
+  - name: string               # Operation identifier
+    operationType: query | mutation
+    query: string              # GraphQL query/mutation
+    cacheTTL?: number         # Cache duration (queries only)
+    transform?: object        # Response transformation
+aliases:                       # Optional: Shortcuts work the same
+  - name: string
+    endpoint: string
+    args: object
 ```
 
 ### Testing Approach
@@ -167,8 +210,9 @@ aliases:                       # Optional: Shortcuts
 4. **Phase 4**: Caching, response transformations ✅ COMPLETE
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
 6. **Phase 6**: Multi-provider LLM support (OpenAI, Anthropic, Google) ✅ COMPLETE
-7. **Phase 7**: AI proxy support (enterprise proxy configuration)
-8. **Phase 8**: OAuth2 built-in authentication
+7. **Phase 7**: AI proxy support (enterprise proxy configuration) ✅ COMPLETE
+8. **Phase 8**: GraphQL support
+9. **Phase 9**: OAuth2 built-in authentication
 
 ## Development Guidelines
 
