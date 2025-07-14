@@ -2,8 +2,11 @@
  * Configuration types for Ovrmnd CLI YAML schema
  */
 
+import type { GraphQLOperationConfig } from './graphql.js'
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 export type AuthType = 'bearer' | 'apikey'
+export type ApiType = 'rest' | 'graphql'
 
 /**
  * Authentication configuration
@@ -50,8 +53,11 @@ export interface AliasConfig {
 export interface ServiceConfig {
   serviceName: string
   baseUrl: string
+  apiType?: ApiType | undefined // Defaults to 'rest'
   authentication?: AuthConfig | undefined
-  endpoints: EndpointConfig[]
+  endpoints?: EndpointConfig[] | undefined // Optional for GraphQL services
+  graphqlEndpoint?: string | undefined // GraphQL endpoint path (e.g., /graphql)
+  graphqlOperations?: GraphQLOperationConfig[] | undefined // GraphQL operations
   aliases?: AliasConfig[] | undefined
 }
 

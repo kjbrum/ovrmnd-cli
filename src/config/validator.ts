@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { ServiceConfig } from '../types/config'
 import { OvrmndError, ErrorCode } from '../utils/error'
+import { graphQLOperationConfigSchema } from './graphql-validator'
 
 /**
  * Zod schema for HTTP methods
@@ -12,6 +13,11 @@ const HttpMethodSchema = z.enum([
   'DELETE',
   'PATCH',
 ])
+
+/**
+ * Zod schema for API types
+ */
+const ApiTypeSchema = z.enum(['rest', 'graphql'])
 
 /**
  * Zod schema for authentication types
@@ -30,7 +36,7 @@ const AuthConfigSchema = z.object({
 /**
  * Zod schema for transform configuration
  */
-const TransformConfigSchema = z.object({
+export const TransformConfigSchema = z.object({
   fields: z.array(z.string()).optional(),
   rename: z.record(z.string()).optional(),
 })
@@ -76,21 +82,81 @@ const ServiceConfigSchema = z
             'Base URL must be a valid URL or environment variable',
           ),
       ),
+    apiType: ApiTypeSchema.optional(),
     authentication: AuthConfigSchema.optional(),
-    endpoints: z
-      .array(EndpointConfigSchema)
-      .min(1, 'At least one endpoint is required'),
+    endpoints: z.array(EndpointConfigSchema).optional(),
+    graphqlEndpoint: z.string().optional(),
+    graphqlOperations: z
+      .array(graphQLOperationConfigSchema)
+      .optional(),
     aliases: z.array(AliasConfigSchema).optional(),
   })
   .refine(
     data => {
+      // Check that either endpoints or graphqlOperations are provided
+      const isRest = !data.apiType || data.apiType === 'rest'
+      const isGraphQL = data.apiType === 'graphql'
+
+      if (
+        isRest &&
+        (!data.endpoints || data.endpoints.length === 0)
+      ) {
+        return false
+      }
+      if (
+        isGraphQL &&
+        (!data.graphqlOperations ||
+          data.graphqlOperations.length === 0)
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message:
+        'REST services require endpoints, GraphQL services require graphqlOperations',
+    },
+  )
+  .refine(
+    data => {
+      // Check for GraphQL endpoint when using GraphQL
+      if (data.apiType === 'graphql' && !data.graphqlEndpoint) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'GraphQL services require graphqlEndpoint',
+    },
+  )
+  .refine(
+    data => {
       // Check for duplicate endpoint names
-      const endpointNames = data.endpoints.map(e => e.name)
-      const uniqueNames = new Set(endpointNames)
-      return endpointNames.length === uniqueNames.size
+      if (data.endpoints) {
+        const endpointNames = data.endpoints.map(e => e.name)
+        const uniqueNames = new Set(endpointNames)
+        return endpointNames.length === uniqueNames.size
+      }
+      return true
     },
     {
       message: 'Duplicate endpoint names found',
+    },
+  )
+  .refine(
+    data => {
+      // Check for duplicate GraphQL operation names
+      if (data.graphqlOperations) {
+        const operationNames = data.graphqlOperations.map(
+          op => op.name,
+        )
+        const uniqueNames = new Set(operationNames)
+        return operationNames.length === uniqueNames.size
+      }
+      return true
+    },
+    {
+      message: 'Duplicate GraphQL operation names found',
     },
   )
   .refine(
@@ -111,7 +177,10 @@ const ServiceConfigSchema = z
     data => {
       // Check that all alias endpoints exist
       if (data.aliases) {
-        const endpointNames = new Set(data.endpoints.map(e => e.name))
+        const endpointNames = new Set([
+          ...(data.endpoints?.map(e => e.name) ?? []),
+          ...(data.graphqlOperations?.map(op => op.name) ?? []),
+        ])
         return data.aliases.every(alias =>
           endpointNames.has(alias.endpoint),
         )
@@ -119,7 +188,7 @@ const ServiceConfigSchema = z
       return true
     },
     {
-      message: 'Alias references non-existent endpoint',
+      message: 'Alias references non-existent endpoint or operation',
     },
   )
 

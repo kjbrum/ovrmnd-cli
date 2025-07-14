@@ -1,0 +1,180 @@
+# Shopify GraphQL Admin API Configuration Example
+# This demonstrates GraphQL support for e-commerce APIs
+
+serviceName: shopify-graphql
+baseUrl: https://${SHOPIFY_STORE}.myshopify.com
+apiType: graphql
+graphqlEndpoint: /admin/api/2024-01/graphql.json
+
+authentication:
+  type: apikey
+  token: ${SHOPIFY_ACCESS_TOKEN}
+  header: X-Shopify-Access-Token
+
+graphqlOperations:
+  - name: getProducts
+    operationType: query
+    query: |
+      query GetProducts($first: Int = 10, $after: String) {
+        products(first: $first, after: $after) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              title
+              description
+              handle
+              status
+              totalInventory
+              priceRangeV2 {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                    altText
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    cacheTTL: 120
+    transform:
+      fields:
+        [
+          'products.edges[*].node.title',
+          'products.edges[*].node.priceRangeV2',
+          'products.pageInfo',
+        ]
+
+  - name: getProduct
+    operationType: query
+    query: |
+      query GetProduct($id: ID!) {
+        product(id: $id) {
+          id
+          title
+          description
+          handle
+          status
+          totalInventory
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                price
+                inventoryQuantity
+                sku
+              }
+            }
+          }
+        }
+      }
+    cacheTTL: 300
+
+  - name: getOrders
+    operationType: query
+    query: |
+      query GetOrders($first: Int = 10, $query: String) {
+        orders(first: $first, query: $query) {
+          edges {
+            node {
+              id
+              name
+              createdAt
+              displayFulfillmentStatus
+              displayFinancialStatus
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              customer {
+                displayName
+                email
+              }
+              lineItems(first: 5) {
+                edges {
+                  node {
+                    title
+                    quantity
+                    originalUnitPriceSet {
+                      shopMoney {
+                        amount
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    cacheTTL: 60
+
+  - name: updateProductStatus
+    operationType: mutation
+    query: |
+      mutation UpdateProductStatus($input: ProductInput!) {
+        productUpdate(input: $input) {
+          product {
+            id
+            title
+            status
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+
+  - name: createProductVariant
+    operationType: mutation
+    query: |
+      mutation CreateProductVariant($input: ProductVariantInput!) {
+        productVariantCreate(input: $input) {
+          productVariant {
+            id
+            title
+            price
+            sku
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+
+aliases:
+  - name: activeProducts
+    endpoint: getProducts
+    args:
+      first: 20
+
+  - name: recentOrders
+    endpoint: getOrders
+    args:
+      first: 10
+      query: 'created_at:>2024-01-01'
+
+  - name: pendingOrders
+    endpoint: getOrders
+    args:
+      query: 'fulfillment_status:unfulfilled financial_status:paid'

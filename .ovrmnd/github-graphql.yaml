@@ -1,0 +1,129 @@
+# GitHub GraphQL API Configuration Example
+# This demonstrates GraphQL support in Ovrmnd CLI
+
+serviceName: github-graphql
+baseUrl: https://api.github.com
+apiType: graphql
+graphqlEndpoint: /graphql
+
+authentication:
+  type: bearer
+  token: ${GITHUB_TOKEN}
+
+graphqlOperations:
+  - name: getRepository
+    operationType: query
+    query: |
+      query GetRepository($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          id
+          name
+          description
+          stargazerCount
+          primaryLanguage {
+            name
+          }
+          issues(first: 5, states: OPEN) {
+            totalCount
+            nodes {
+              title
+              state
+              createdAt
+            }
+          }
+        }
+      }
+    cacheTTL: 300
+    transform:
+      fields:
+        [
+          'repository.name',
+          'repository.stargazerCount',
+          'repository.issues.totalCount',
+        ]
+
+  - name: getUser
+    operationType: query
+    query: |
+      query GetUser($login: String!) {
+        user(login: $login) {
+          id
+          name
+          login
+          bio
+          company
+          location
+          email
+          repositories(first: 5, orderBy: {field: STARGAZERS, direction: DESC}) {
+            totalCount
+            nodes {
+              name
+              stargazerCount
+              description
+            }
+          }
+        }
+      }
+    cacheTTL: 600
+
+  - name: searchRepositories
+    operationType: query
+    query: |
+      query SearchRepositories($query: String!, $first: Int = 10) {
+        search(query: $query, type: REPOSITORY, first: $first) {
+          repositoryCount
+          edges {
+            node {
+              ... on Repository {
+                name
+                owner {
+                  login
+                }
+                stargazerCount
+                description
+                primaryLanguage {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    variables:
+      first: 10
+
+  - name: createIssue
+    operationType: mutation
+    query: |
+      mutation CreateIssue($repositoryId: ID!, $title: String!, $body: String) {
+        createIssue(input: {
+          repositoryId: $repositoryId,
+          title: $title,
+          body: $body
+        }) {
+          issue {
+            id
+            number
+            title
+            url
+          }
+        }
+      }
+
+aliases:
+  - name: ovrmnd
+    endpoint: getRepository
+    args:
+      owner: anthropics
+      name: ovrmnd-cli
+
+  - name: me
+    endpoint: getUser
+    args:
+      login: ${GITHUB_USERNAME}
+
+  - name: trending
+    endpoint: searchRepositories
+    args:
+      query: 'stars:>10000 language:javascript'
+      first: 5

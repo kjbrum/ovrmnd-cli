@@ -2,13 +2,16 @@ import type { Argv, ArgumentsCamelCase } from 'yargs'
 import { BaseCommand } from './base-command'
 import { loadServiceConfig } from '../config'
 import { callEndpoint } from '../api/client'
+import { executeGraphQLOperation } from '../api/graphql'
 import { mapParameters } from '../api/params'
 import { OutputFormatter } from '../utils/output'
 import { OvrmndError, ErrorCode } from '../utils/error'
 import { DebugFormatter } from '../utils/debug'
 import type { ServiceConfig, EndpointConfig } from '../types/config'
+import type { GraphQLOperationConfig } from '../types/graphql'
 import type { ParamHints, RawParams } from '../api/params'
 import type { ApiResponse } from '../types'
+import { CacheStorage } from '../cache'
 
 interface CallCommandArgs {
   target: string
@@ -115,8 +118,12 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
       // Load configuration
       const config = await loadServiceConfig(service, debugFormatter)
 
-      // Find endpoint or alias
+      // Check if this is a GraphQL service
+      const isGraphQL = config.apiType === 'graphql'
+
+      // Find endpoint/operation or alias
       let endpoint: EndpointConfig | undefined
+      let operation: GraphQLOperationConfig | undefined
       let aliasParams: Record<string, unknown> = {}
 
       // First check if it's an alias
@@ -124,80 +131,162 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         a => a.name === endpointOrAlias,
       )
       if (alias) {
-        endpoint = config.endpoints.find(
-          e => e.name === alias.endpoint,
-        )
-        if (!endpoint) {
-          throw new OvrmndError({
-            code: ErrorCode.ENDPOINT_NOT_FOUND,
-            message: `Endpoint '${alias.endpoint}' referenced by alias '${endpointOrAlias}' not found`,
-          })
+        if (isGraphQL) {
+          operation = config.graphqlOperations?.find(
+            op => op.name === alias.endpoint,
+          )
+          if (!operation) {
+            throw new OvrmndError({
+              code: ErrorCode.ENDPOINT_NOT_FOUND,
+              message: `GraphQL operation '${alias.endpoint}' referenced by alias '${endpointOrAlias}' not found`,
+            })
+          }
+        } else {
+          endpoint = config.endpoints?.find(
+            e => e.name === alias.endpoint,
+          )
+          if (!endpoint) {
+            throw new OvrmndError({
+              code: ErrorCode.ENDPOINT_NOT_FOUND,
+              message: `Endpoint '${alias.endpoint}' referenced by alias '${endpointOrAlias}' not found`,
+            })
+          }
         }
         aliasParams = alias.args ?? {}
       } else {
-        // Look for direct endpoint
-        endpoint = config.endpoints.find(
-          e => e.name === endpointOrAlias,
-        )
+        // Look for direct endpoint/operation
+        if (isGraphQL) {
+          operation = config.graphqlOperations?.find(
+            op => op.name === endpointOrAlias,
+          )
+        } else {
+          endpoint = config.endpoints?.find(
+            e => e.name === endpointOrAlias,
+          )
+        }
       }
 
-      if (!endpoint) {
+      if (!endpoint && !operation) {
+        const type = isGraphQL ? 'operation' : 'endpoint'
         throw new OvrmndError({
           code: ErrorCode.ENDPOINT_NOT_FOUND,
-          message: `Endpoint or alias '${endpointOrAlias}' not found in service '${service}'`,
-          help: `Run 'ovrmnd list ${service}' to see available endpoints and aliases`,
+          message: `${type} or alias '${endpointOrAlias}' not found in service '${service}'`,
+          help: `Run 'ovrmnd list ${service}' to see available ${type}s and aliases`,
         })
       }
 
-      // Check if this is a batch operation
-      if (args.batchJson) {
-        await this.handleBatchOperation(
-          args,
+      // Handle GraphQL vs REST routing
+      if (isGraphQL && operation) {
+        // GraphQL operation
+        if (args.batchJson) {
+          await this.handleGraphQLBatchOperation(
+            args,
+            config,
+            operation,
+            aliasParams,
+            formatter,
+            debugFormatter,
+          )
+          return
+        }
+
+        // Single GraphQL operation
+        const rawParams = this.parseRawParams(args)
+        const mergedParams = this.mergeParams(
+          aliasParams as RawParams,
+          rawParams,
+        )
+
+        // Debug parameter mapping
+        debugFormatter.formatParameterMapping(
+          operation.name,
+          mergedParams,
+          mergedParams, // GraphQL uses variables directly
+        )
+
+        try {
+          // Execute GraphQL operation
+          const cache = new CacheStorage()
+          const data = await executeGraphQLOperation<unknown>(
+            config,
+            operation,
+            mergedParams,
+            {
+              debug: args.debug,
+              cache,
+            },
+          )
+
+          // Format as API response
+          const response: ApiResponse = {
+            success: true,
+            data: data as unknown,
+            metadata: {
+              timestamp: Date.now(),
+              statusCode: 200,
+            },
+          }
+
+          // Output the response
+          const output = formatter.formatApiResponse(response)
+          process.stdout.write(`${output}\n`)
+        } catch (error) {
+          // Format GraphQL errors
+          const errorOutput = formatter.formatError(error)
+          console.error(errorOutput)
+          process.exit(1)
+        }
+      } else if (endpoint) {
+        // REST endpoint
+        if (args.batchJson) {
+          await this.handleBatchOperation(
+            args,
+            config,
+            endpoint,
+            aliasParams,
+            formatter,
+            debugFormatter,
+          )
+          return
+        }
+
+        // Single REST operation
+        const rawParams = this.parseRawParams(args)
+        const hints = this.createHints(args)
+        const mergedParams = this.mergeParams(
+          aliasParams as RawParams,
+          rawParams,
+        )
+
+        // Map parameters
+        const mappedParams = mapParameters(
+          endpoint,
+          mergedParams,
+          hints,
+        )
+
+        // Debug parameter mapping
+        debugFormatter.formatParameterMapping(
+          endpoint.name,
+          mergedParams,
+          mappedParams,
+        )
+
+        // Make the API call
+        const response = await callEndpoint(
           config,
           endpoint,
-          aliasParams,
-          formatter,
+          mappedParams,
           debugFormatter,
         )
-        return
-      }
 
-      // Single operation (existing logic)
-      const rawParams = this.parseRawParams(args)
-      const hints = this.createHints(args)
-      const mergedParams = this.mergeParams(
-        aliasParams as RawParams,
-        rawParams,
-      )
+        // Output the response
+        const output = formatter.formatApiResponse(response)
+        process.stdout.write(`${output}\n`)
 
-      // Map parameters
-      const mappedParams = mapParameters(
-        endpoint,
-        mergedParams,
-        hints,
-      )
-
-      // Debug parameter mapping
-      debugFormatter.formatParameterMapping(
-        endpoint.name,
-        mergedParams,
-        mappedParams,
-      )
-
-      // Make the API call
-      const response = await callEndpoint(
-        config,
-        endpoint,
-        mappedParams,
-        debugFormatter,
-      )
-
-      // Output the response
-      const output = formatter.formatApiResponse(response)
-      process.stdout.write(`${output}\n`)
-
-      if (!response.success) {
-        process.exit(1)
+        if (!response.success) {
+          process.exit(1)
+        }
       }
     } catch (error) {
       // Use the same formatter for errors to ensure consistency
@@ -526,5 +615,142 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
     }
 
     return result
+  }
+
+  private async handleGraphQLBatchOperation(
+    args: ArgumentsCamelCase<CallCommandArgs>,
+    config: ServiceConfig,
+    operation: GraphQLOperationConfig,
+    aliasParams: Record<string, unknown>,
+    formatter: OutputFormatter,
+    debugFormatter: DebugFormatter,
+  ): Promise<void> {
+    // Parse batch JSON
+    let batchParams: Record<string, unknown>[]
+    try {
+      const parsed = JSON.parse(args.batchJson!) as unknown
+      if (!Array.isArray(parsed)) {
+        throw new Error('Batch JSON must be an array')
+      }
+      batchParams = parsed as Record<string, unknown>[]
+    } catch (error) {
+      throw new OvrmndError({
+        code: ErrorCode.PARAM_INVALID,
+        message: 'Invalid batch JSON format',
+        details: error instanceof Error ? error.message : error,
+        help: 'Provide a valid JSON array, e.g., --batch-json=\'[{"id": "1"}, {"id": "2"}]\'',
+      })
+    }
+
+    if (batchParams.length === 0) {
+      throw new OvrmndError({
+        code: ErrorCode.PARAM_INVALID,
+        message: 'Batch JSON array is empty',
+        help: 'Provide at least one parameter set in the array',
+      })
+    }
+
+    // Get CLI parameters that will override batch params
+    const cliRawParams = this.parseRawParams(args)
+    const cache = new CacheStorage()
+
+    const results: ApiResponse[] = []
+    const total = batchParams.length
+
+    // Show progress in debug mode
+    if (args.debug) {
+      debugFormatter.info(
+        `Starting GraphQL batch operation with ${total} requests`,
+      )
+    }
+
+    for (let i = 0; i < batchParams.length; i++) {
+      const batchItem = batchParams[i]
+
+      // Progress indication in debug mode
+      if (args.debug) {
+        debugFormatter.info(
+          `Executing GraphQL request ${i + 1} of ${total}...`,
+        )
+      }
+
+      try {
+        // Merge parameters: alias < batch < CLI
+        const mergedParams = this.mergeParams(
+          aliasParams as RawParams,
+          this.convertToRawParams(batchItem ?? {}),
+          cliRawParams,
+        )
+
+        // Debug parameter mapping for each request
+        if (args.debug) {
+          debugFormatter.formatParameterMapping(
+            `${operation.name} [${i + 1}/${total}]`,
+            mergedParams,
+            mergedParams, // GraphQL uses variables directly
+          )
+        }
+
+        // Execute GraphQL operation
+        const data = await executeGraphQLOperation<unknown>(
+          config,
+          operation,
+          mergedParams,
+          {
+            debug: args.debug,
+            cache,
+          },
+        )
+
+        // Format as API response
+        const response: ApiResponse = {
+          success: true,
+          data: data as any,
+          metadata: {
+            timestamp: Date.now(),
+            statusCode: 200,
+          },
+        }
+
+        results.push(response)
+      } catch (error) {
+        // Convert error to ApiResponse format
+        const errorResponse: ApiResponse = {
+          success: false,
+          error: {
+            code:
+              error instanceof OvrmndError
+                ? error.code
+                : 'UNKNOWN_ERROR',
+            message:
+              error instanceof Error ? error.message : String(error),
+            details:
+              error instanceof OvrmndError
+                ? error.details
+                : undefined,
+          },
+        }
+        results.push(errorResponse)
+
+        // Check fail-fast mode
+        if (args.failFast) {
+          if (args.debug) {
+            debugFormatter.warning(
+              `Stopping GraphQL batch operation due to error (fail-fast mode)`,
+            )
+          }
+          break
+        }
+      }
+    }
+
+    // Format and output batch results
+    this.outputBatchResults(results, formatter)
+
+    // Exit with error if any request failed
+    const hasErrors = results.some(r => !r.success)
+    if (hasErrors) {
+      process.exit(1)
+    }
   }
 }

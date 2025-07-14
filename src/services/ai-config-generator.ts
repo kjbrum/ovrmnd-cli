@@ -221,7 +221,10 @@ export class AIConfigGenerator {
 
       // Check for common connection errors
       if (error instanceof Error) {
-        if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+        if (
+          error.message.includes('ENOTFOUND') ||
+          error.message.includes('ECONNREFUSED')
+        ) {
           throw new OvrmndError({
             code: ErrorCode.API_REQUEST_FAILED,
             message: `Failed to connect to ${this.usingProxy ? 'proxy' : 'API'}: ${error.message}`,
@@ -231,7 +234,7 @@ export class AIConfigGenerator {
           })
         }
       }
-      
+
       throw new OvrmndError({
         code: ErrorCode.UNKNOWN_ERROR,
         message: `Failed to generate config: ${error instanceof Error ? error.message : 'Unknown error'}`,

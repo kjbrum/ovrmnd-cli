@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST APIs using declarative YAML configurations. It outputs JSON by default (optimized for LLM consumption) with an optional --pretty flag for human-readable output.
+Ovrmnd CLI is a universal command-line interface that bridges LLMs and REST/GraphQL APIs using declarative YAML configurations. It outputs JSON by default (optimized for LLM consumption) with an optional --pretty flag for human-readable output.
 
 ## Current Status & Important Files
 
@@ -88,27 +88,20 @@ ovrmnd [command]        # Run installed CLI
 - Proxy-specific error handling and debug output
 - Comprehensive tests and documentation
 
+**Already Implemented (Phase 8)**: ✅ COMPLETE
+- GraphQL support as additional API type
+- New `apiType` field in ServiceConfig (defaults to 'rest')
+- GraphQL operations defined using `graphqlOperations` field
+- Native GraphQL client with query and mutation support
+- Variable handling with direct CLI argument mapping
+- GraphQL-specific error handling and response parsing
+- Reuses existing auth, caching, and transformation systems
+- Batch operations support for GraphQL
+- List command shows GraphQL operations
+- Validate command checks GraphQL syntax and rules
+- Comprehensive unit and integration tests
+
 **To Be Implemented**:
-
-**Phase 8: GraphQL Support**
-1. **GraphQL as Additional API Type**
-   - New `apiType` field in ServiceConfig (defaults to 'rest')
-   - GraphQL operations defined alongside REST endpoints
-   - Reuses existing auth, caching, and transformation systems
-   - See `docs/plans/graphql-support.md` for details
-
-2. **GraphQL Implementation**
-   - Native GraphQL client (no heavy dependencies)
-   - Support for queries and mutations
-   - Variable handling and validation
-   - GraphQL-specific error handling
-   - Operation name support
-
-3. **Configuration Pattern**
-   - GraphQL services use `graphqlOperations` instead of `endpoints`
-   - Single GraphQL endpoint per service
-   - Operations work like REST endpoints but with GraphQL queries
-   - Aliases and transforms work seamlessly
 
 **Phase 9: OAuth2 Built-in Authentication**
 1. **OAuth2 as Native Auth Type**
@@ -211,7 +204,7 @@ aliases:                       # Optional: Shortcuts work the same
 5. **Phase 5**: Aliases, init command (with AI support), batch operations ✅ COMPLETE
 6. **Phase 6**: Multi-provider LLM support (OpenAI, Anthropic, Google) ✅ COMPLETE
 7. **Phase 7**: AI proxy support (enterprise proxy configuration) ✅ COMPLETE
-8. **Phase 8**: GraphQL support
+8. **Phase 8**: GraphQL support ✅ COMPLETE
 9. **Phase 9**: OAuth2 built-in authentication
 
 ## Development Guidelines

@@ -4,17 +4,18 @@
 
 ## Vision
 
-Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any REST API. The goal is to empower LLMs and AI agents to interact with the digital world through APIs without requiring custom-built, service-specific servers or complex integrations.
+Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any REST or GraphQL API. The goal is to empower LLMs and AI agents to interact with the digital world through APIs without requiring custom-built, service-specific servers or complex integrations.
 
 ## Core Features
 
 *   **Declarative YAML Configuration:** Define API endpoints, parameters, and authentication in simple, shareable YAML files.
+*   **GraphQL Support:** Native support for GraphQL queries and mutations alongside REST APIs.
 *   **Automatic Service Discovery:** The CLI automatically discovers API configurations from global and project-specific directories.
 *   **Secure by Default:** Credentials are kept out of configuration and sourced from environment variables (`.env` files supported).
 *   **LLM-Friendly Output:** Provides structured JSON output for easy parsing by AI agents.
-*   **Built-in Caching:** Reduce redundant API calls with configurable caching for GET requests.
+*   **Built-in Caching:** Reduce redundant API calls with configurable caching for GET requests and GraphQL queries.
 *   **Aliases:** Create simple shortcuts for complex or frequently used API calls.
-*   **AI-Powered Configuration:** Generate configurations automatically using natural language prompts (powered by Claude).
+*   **AI-Powered Configuration:** Generate configurations automatically using natural language prompts (supports multiple AI providers).
 
 ## Getting Started
 
@@ -288,6 +289,116 @@ ovrmnd init stripe --prompt "Create a config using https://stripe.com/docs/api f
 ### Using the AI Prompt Manually
 
 The system prompt used for AI configuration generation is available in [docs/ai-config-prompt.md](docs/ai-config-prompt.md). You can use this prompt with any AI assistant (Claude, ChatGPT, etc.) by replacing the `{serviceName}` and `{prompt}` placeholders.
+
+## GraphQL Support
+
+Ovrmnd CLI provides native support for GraphQL APIs alongside REST APIs. You can configure GraphQL services using the same YAML format with GraphQL-specific fields.
+
+### GraphQL Configuration
+
+```yaml
+serviceName: github-graphql
+baseUrl: https://api.github.com
+apiType: graphql                    # Specify GraphQL API type
+graphqlEndpoint: /graphql           # GraphQL endpoint path
+
+authentication:
+  type: bearer
+  token: ${GITHUB_TOKEN}
+
+graphqlOperations:
+  - name: getRepository
+    operationType: query            # 'query' or 'mutation'
+    query: |
+      query GetRepository($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          id
+          name
+          description
+          stargazerCount
+          issues(first: 5) {
+            nodes {
+              title
+              state
+            }
+          }
+        }
+      }
+    cacheTTL: 300                  # Cache queries for 5 minutes
+    transform:                     # Apply transformations to response
+      fields: ["repository.name", "repository.stargazerCount"]
+
+  - name: createIssue
+    operationType: mutation
+    query: |
+      mutation CreateIssue($repositoryId: ID!, $title: String!, $body: String) {
+        createIssue(input: {
+          repositoryId: $repositoryId,
+          title: $title,
+          body: $body
+        }) {
+          issue {
+            id
+            number
+            title
+            url
+          }
+        }
+      }
+
+aliases:
+  - name: myRepo
+    endpoint: getRepository
+    args:
+      owner: myusername
+      name: myproject
+```
+
+### Using GraphQL Operations
+
+```bash
+# Execute a GraphQL query
+ovrmnd call github-graphql.getRepository owner=octocat name=Hello-World
+
+# Execute a mutation
+ovrmnd call github-graphql.createIssue repositoryId=MDEwOlJlcG9zaXRvcnkxMjk2MjY5 title="New Issue" body="Issue description"
+
+# Use an alias
+ovrmnd call github-graphql.myRepo
+
+# Pretty output
+ovrmnd call github-graphql.getRepository owner=octocat name=Hello-World --pretty
+
+# Batch operations
+ovrmnd call github-graphql.getRepository --batch-json='[{"owner":"octocat","name":"Hello-World"},{"owner":"facebook","name":"react"}]'
+```
+
+### Key GraphQL Features
+
+- **Native GraphQL Support**: Execute queries and mutations without wrapping REST endpoints
+- **Variable Handling**: Pass GraphQL variables directly as CLI arguments
+- **Caching**: Cache query responses with configurable TTL (mutations are never cached)
+- **Transformations**: Apply field extraction and renaming to GraphQL responses
+- **Batch Operations**: Execute the same operation with different variables in a single command
+- **Debug Mode**: See the full GraphQL request and response with `--debug`
+- **Type Safety**: Validate GraphQL operations at configuration time
+
+### GraphQL vs REST Services
+
+You can mix GraphQL and REST services in your configuration:
+
+```bash
+# List all services (both REST and GraphQL)
+ovrmnd list services
+
+# List GraphQL operations
+ovrmnd list endpoints github-graphql
+
+# List REST endpoints  
+ovrmnd list endpoints github-rest
+```
+
+The CLI automatically routes requests based on the `apiType` field in your configuration.
 
 ## Development Progress
 

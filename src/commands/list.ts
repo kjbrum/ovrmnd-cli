@@ -177,49 +177,97 @@ export class ListCommand extends BaseCommand<ListArgs> {
       })
     }
 
-    const endpoints = config.endpoints.map(endpoint => ({
-      name: endpoint.name,
-      method: endpoint.method,
-      path: endpoint.path,
-      cacheTTL: endpoint.cacheTTL,
-      parameters: this.extractParameters(endpoint.path),
-    }))
+    const isGraphQL = config.apiType === 'graphql'
 
-    if (formatter.isJsonMode) {
-      process.stdout.write(
-        `${JSON.stringify({ service: serviceName, endpoints })}\n`,
-      )
-    } else {
-      process.stderr.write(
-        `${formatter.success(`Endpoints for service '${serviceName}':\n`)}\n`,
-      )
+    if (isGraphQL) {
+      // List GraphQL operations
+      const operations = (config.graphqlOperations ?? []).map(op => ({
+        name: op.name,
+        type: op.operationType ?? 'query',
+        cacheTTL: op.cacheTTL,
+        variables: op.variables ? Object.keys(op.variables) : [],
+      }))
 
-      if (endpoints.length === 0) {
-        process.stderr.write(
-          `${formatter.warning('No endpoints configured')}\n`,
+      if (formatter.isJsonMode) {
+        process.stdout.write(
+          `${JSON.stringify({ service: serviceName, apiType: 'graphql', operations })}\n`,
         )
-        return
+      } else {
+        process.stderr.write(
+          `${formatter.success(`GraphQL Operations for service '${serviceName}':\n`)}\n`,
+        )
+
+        if (operations.length === 0) {
+          process.stderr.write(
+            `${formatter.warning('No GraphQL operations configured')}\n`,
+          )
+          return
+        }
+
+        const headers = [
+          'Operation',
+          'Type',
+          'Cache TTL',
+          'Default Variables',
+        ]
+        const rows = operations.map(op => [
+          op.name,
+          op.type,
+          op.cacheTTL ? `${op.cacheTTL}s` : '-',
+          op.variables.length > 0 ? op.variables.join(', ') : '-',
+        ])
+
+        process.stderr.write(`${formatter.table(headers, rows)}\n`)
+        process.stderr.write(
+          `\nUsage: ovrmnd call ${serviceName}.<operation> [variables...]\n`,
+        )
       }
+    } else {
+      // List REST endpoints
+      const endpoints = (config.endpoints ?? []).map(endpoint => ({
+        name: endpoint.name,
+        method: endpoint.method,
+        path: endpoint.path,
+        cacheTTL: endpoint.cacheTTL,
+        parameters: this.extractParameters(endpoint.path),
+      }))
 
-      const headers = [
-        'Endpoint',
-        'Method',
-        'Path',
-        'Cache TTL',
-        'Parameters',
-      ]
-      const rows = endpoints.map(e => [
-        e.name,
-        e.method,
-        e.path,
-        e.cacheTTL ? `${e.cacheTTL}s` : '-',
-        e.parameters.length > 0 ? e.parameters.join(', ') : '-',
-      ])
+      if (formatter.isJsonMode) {
+        process.stdout.write(
+          `${JSON.stringify({ service: serviceName, apiType: 'rest', endpoints })}\n`,
+        )
+      } else {
+        process.stderr.write(
+          `${formatter.success(`Endpoints for service '${serviceName}':\n`)}\n`,
+        )
 
-      process.stderr.write(`${formatter.table(headers, rows)}\n`)
-      process.stderr.write(
-        `\nUsage: ovrmnd call ${serviceName}.<endpoint> [params...]\n`,
-      )
+        if (endpoints.length === 0) {
+          process.stderr.write(
+            `${formatter.warning('No endpoints configured')}\n`,
+          )
+          return
+        }
+
+        const headers = [
+          'Endpoint',
+          'Method',
+          'Path',
+          'Cache TTL',
+          'Parameters',
+        ]
+        const rows = endpoints.map(e => [
+          e.name,
+          e.method,
+          e.path,
+          e.cacheTTL ? `${e.cacheTTL}s` : '-',
+          e.parameters.length > 0 ? e.parameters.join(', ') : '-',
+        ])
+
+        process.stderr.write(`${formatter.table(headers, rows)}\n`)
+        process.stderr.write(
+          `\nUsage: ovrmnd call ${serviceName}.<endpoint> [params...]\n`,
+        )
+      }
     }
   }
 
