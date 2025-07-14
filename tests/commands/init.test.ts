@@ -94,8 +94,8 @@ describe('InitCommand', () => {
           alias: 't',
           describe: 'Template to use',
           type: 'string',
-          choices: ['rest'],
-          default: 'rest',
+          choices: ['graphql', 'rest'],
+          default: 'graphql',
         }),
       )
 
@@ -529,6 +529,7 @@ describe('InitCommand', () => {
         expect(mockAIGenerator.generateConfig).toHaveBeenCalledWith(
           'github',
           'Create GitHub API config for repository management',
+          { debug: false },
         )
 
         expect(mockFs.writeFile).toHaveBeenCalledWith(
@@ -692,6 +693,141 @@ describe('InitCommand', () => {
           expect.any(String),
           'utf-8',
         )
+      })
+
+      it('should generate GraphQL config when api-type is graphql', async () => {
+        const mockGraphQLConfig = {
+          serviceName: 'github-graphql',
+          baseUrl: 'https://api.github.com',
+          apiType: 'graphql' as const,
+          graphqlEndpoint: '/graphql',
+          authentication: {
+            type: 'bearer' as const,
+            token: '${GITHUB_TOKEN}',
+          },
+          graphqlOperations: [
+            {
+              name: 'getRepository',
+              operationType: 'query' as const,
+              query: `query GetRepository($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                  id
+                  name
+                  stargazerCount
+                }
+              }`,
+              cacheTTL: 300,
+            },
+          ],
+          aliases: [
+            {
+              name: 'my-repo',
+              endpoint: 'getRepository',
+              args: { owner: 'myuser', name: 'myrepo' },
+            },
+          ],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(
+          mockGraphQLConfig,
+        )
+        mockFs.access.mockRejectedValue(new Error('Not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'github-graphql',
+          template: 'rest',
+          output: undefined,
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'GitHub GraphQL API for repositories',
+          apiType: 'graphql',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockAIGenerator.generateConfig).toHaveBeenCalledWith(
+          'github-graphql',
+          'GitHub GraphQL API for repositories',
+          { debug: false, apiType: 'graphql' },
+        )
+
+        expect(processStdoutSpy).toHaveBeenCalledWith(
+          expect.stringContaining('"service":"github-graphql"'),
+        )
+      })
+
+      it('should pass auto api-type to AI generator by default', async () => {
+        const mockConfig = {
+          serviceName: 'test',
+          baseUrl: 'https://api.test.com',
+          endpoints: [],
+        }
+
+        mockAIGenerator.generateConfig.mockResolvedValue(mockConfig)
+        mockFs.access.mockRejectedValue(new Error('Not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'test',
+          template: 'rest',
+          output: undefined,
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          prompt: 'Create test config',
+          apiType: 'auto',
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockAIGenerator.generateConfig).toHaveBeenCalledWith(
+          'test',
+          'Create test config',
+          { debug: false, apiType: 'auto' },
+        )
+      })
+    })
+
+    describe('GraphQL template generation', () => {
+      it('should generate GraphQL template when template is graphql', async () => {
+        mockFs.access.mockRejectedValue(new Error('Not found'))
+        mockFs.mkdir.mockResolvedValue(undefined)
+        mockFs.writeFile.mockResolvedValue(undefined)
+
+        await command.handler({
+          serviceName: 'myapi',
+          template: 'graphql',
+          output: undefined,
+          force: false,
+          global: false,
+          interactive: false,
+          pretty: false,
+          debug: false,
+          _: [],
+          $0: 'ovrmnd',
+        } as any)
+
+        expect(mockFs.writeFile).toHaveBeenCalled()
+        const writeCall = mockFs.writeFile.mock.calls[0]
+        expect(writeCall).toBeDefined()
+        if (writeCall) {
+          const yamlContent = writeCall[1] as string
+          expect(yamlContent).toContain('apiType: graphql')
+          expect(yamlContent).toContain('graphqlEndpoint: /graphql')
+          expect(yamlContent).toContain('graphqlOperations:')
+          expect(yamlContent).toContain('operationType: query')
+          expect(yamlContent).toContain('operationType: mutation')
+          expect(yamlContent).toContain('query ListItems')
+          expect(yamlContent).toContain('mutation CreateItem')
+        }
       })
     })
   })

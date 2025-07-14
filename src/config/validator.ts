@@ -94,8 +94,8 @@ const ServiceConfigSchema = z
   .refine(
     data => {
       // Check that either endpoints or graphqlOperations are provided
-      const isRest = !data.apiType || data.apiType === 'rest'
-      const isGraphQL = data.apiType === 'graphql'
+      const isRest = data.apiType === 'rest'
+      const isGraphQL = !data.apiType || data.apiType === 'graphql'
 
       if (
         isRest &&
@@ -120,7 +120,10 @@ const ServiceConfigSchema = z
   .refine(
     data => {
       // Check for GraphQL endpoint when using GraphQL
-      if (data.apiType === 'graphql' && !data.graphqlEndpoint) {
+      if (
+        (!data.apiType || data.apiType === 'graphql') &&
+        !data.graphqlEndpoint
+      ) {
         return false
       }
       return true

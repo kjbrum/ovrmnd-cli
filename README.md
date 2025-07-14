@@ -4,7 +4,7 @@
 
 ## Vision
 
-Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any REST or GraphQL API. The goal is to empower LLMs and AI agents to interact with the digital world through APIs without requiring custom-built, service-specific servers or complex integrations.
+Ovrmnd CLI is a universal, lightweight command-line interface (CLI) designed to be a simple bridge between Large Language Models (LLMs) and any GraphQL or REST API. The goal is to empower LLMs and AI agents to interact with the digital world through APIs without requiring custom-built, service-specific servers or complex integrations.
 
 ## Core Features
 
@@ -95,8 +95,16 @@ ovrmnd init myapi
 ovrmnd init shopify --prompt "Find Shopify REST API docs for products and orders"
 ovrmnd init github --prompt "Create config for GitHub API repo management"
 
+# AI-powered GraphQL generation
+ovrmnd init github --prompt "GitHub GraphQL API for repos and issues" --api-type graphql
+ovrmnd init shopify --prompt "Shopify GraphQL Admin API" --api-type graphql
+
+# GraphQL template
+ovrmnd init myapi --template graphql
+
 # Options
---template=rest     # Template type (default: rest)
+--template=graphql|rest  # Template type (default: graphql)
+--api-type=auto|rest|graphql  # API type for AI generation (default: auto, prefers GraphQL)
 --global           # Create in global config directory (~/.ovrmnd)
 --force            # Overwrite existing files
 --output=path      # Custom output path
@@ -258,32 +266,51 @@ ovrmnd init myservice --prompt "Configure service for..."
 Use the `--prompt` flag with the `init` command to describe what you need:
 
 ```bash
-# Research and create configurations
+# Research and create REST API configurations
 ovrmnd init shopify --prompt "Find the Shopify REST API documentation and create a config for managing products, orders, and customers"
 
 ovrmnd init slack --prompt "Create a Slack API config for sending messages and managing channels"
 
 ovrmnd init stripe --prompt "Generate a Stripe API configuration for payment processing and customer management"
+
+# Auto-detect best API type (GraphQL preferred when available)
+ovrmnd init github --prompt "GitHub API for repository and issue management"
+
+# Force GraphQL configuration
+ovrmnd init shopify --prompt "Shopify Admin API for products" --api-type graphql
+
+# Force REST configuration (even if GraphQL is available)
+ovrmnd init github --prompt "GitHub API for repos" --api-type rest
 ```
 
 The AI will:
 - Research the API documentation
 - Identify authentication requirements
-- Find the most useful endpoints
+- Detect if GraphQL is available (and prefer it when --api-type=auto)
+- Find the most useful endpoints or GraphQL operations
 - Generate a complete YAML configuration
 - Include helpful aliases and transformations
 
 ### Tips
 
-- Be specific about which endpoints you need
+- Be specific about which endpoints or operations you need
 - Include API documentation URLs in your prompt for best results
 - Mention if you need specific authentication types
+- Use `--api-type` to control REST vs GraphQL generation:
+  - `auto` (default): AI chooses best option
+  - `graphql`: Force GraphQL even if REST is available
+  - `rest`: Force REST even if GraphQL is available
 - The AI will use environment variable placeholders for credentials
 - Generated configs can be edited and customized as needed
 
 Example with documentation URL:
 ```bash
 ovrmnd init stripe --prompt "Create a config using https://stripe.com/docs/api for payment processing"
+```
+
+Example forcing GraphQL:
+```bash
+ovrmnd init github --prompt "Use https://docs.github.com/graphql for repository management" --api-type graphql
 ```
 
 ### Using the AI Prompt Manually
@@ -385,7 +412,7 @@ ovrmnd call github-graphql.getRepository --batch-json='[{"owner":"octocat","name
 
 ### GraphQL vs REST Services
 
-You can mix GraphQL and REST services in your configuration:
+GraphQL is the default API type. When initializing a new service, GraphQL templates are created by default. REST is available as an option when needed:
 
 ```bash
 # List all services (both REST and GraphQL)
@@ -394,7 +421,7 @@ ovrmnd list services
 # List GraphQL operations
 ovrmnd list endpoints github-graphql
 
-# List REST endpoints  
+# List REST endpoints
 ovrmnd list endpoints github-rest
 ```
 

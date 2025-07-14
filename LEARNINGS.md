@@ -889,7 +889,7 @@ Following Claude's best practices documentation, migrated from markdown-based pr
 ### Prompt Architecture Changes
 ```
 docs/prompts/
-├── ai-config-base.xml      # Main prompt with XML structure
+├── ai-config-base.xml      # Main prompt with XML structure (supports both REST and GraphQL)
 ├── security-rules.xml      # Security requirements module
 └── examples/              # Service-specific examples
     ├── github-example.xml
@@ -928,3 +928,266 @@ docs/prompts/
 - Better adherence to security guidelines
 - Clearer error messages when generation fails
 - Reduced API costs through caching
+
+## GraphQL Support in AI-Powered Init Command
+
+### Design Decisions
+
+1. **Auto-Detection by Default**:
+   - AI researches both REST and GraphQL documentation
+   - Prefers GraphQL when available for better performance and flexibility
+   - Falls back to REST when GraphQL not available or poorly documented
+   - User can override with `--api-type` flag
+
+2. **Three API Type Options**:
+   - `auto` (default): AI chooses the best available API type
+   - `rest`: Force REST even if GraphQL is available
+   - `graphql`: Force GraphQL (error if not available)
+
+3. **GraphQL-Aware Prompt**:
+   - Updated prompt file `ai-config-base.xml` to support both REST and GraphQL
+   - Prompt includes GraphQL-specific patterns (queries, mutations, variables)
+   - Detection criteria for GraphQL: /graphql endpoint, GraphQL docs, schema availability
+   - Smart operation extraction from documentation
+
+4. **Template Support**:
+   - Added `--template graphql` option for manual GraphQL templates
+   - Template includes example queries and mutations with proper syntax
+   - Demonstrates operation types, variables, and transforms
+
+### Implementation Patterns
+
+```bash
+# Auto-detect (prefers GraphQL if available)
+ovrmnd init github --prompt "GitHub API for repos and issues"
+
+# Force GraphQL
+ovrmnd init shopify --prompt "Shopify Admin API" --api-type graphql
+
+# Force REST (even if GraphQL exists)
+ovrmnd init github --prompt "GitHub API" --api-type rest
+
+# GraphQL template
+ovrmnd init myapi --template graphql
+```
+
+### AI Detection Logic
+
+The AI follows this process:
+1. Research API documentation for both REST and GraphQL
+2. Check for GraphQL indicators:
+   - `/graphql` endpoint exists
+   - "GraphQL API" mentioned in docs
+   - GraphQL schema documentation available
+   - GraphQL playground/explorer links
+3. Evaluate documentation quality for both options
+4. Choose GraphQL if well-documented, otherwise REST
+5. Generate appropriate configuration based on choice
+
+### TypeScript Challenges
+
+1. **Optional Property Handling**:
+   - `exactOptionalPropertyTypes` required careful handling of apiType
+   - Created options object conditionally to avoid undefined assignment
+   - Used type-safe pattern for optional properties
+
+2. **Zod Transform for GraphQL Operations**:
+   - Had to create custom transform to remove undefined optional properties
+   - Required explicit type definition for transformed result
+   - Ensures compatibility with exactOptionalPropertyTypes
+
+3. **Circular Dependencies**:
+   - GraphQL validator needed TransformConfigSchema from main validator
+   - Solved by duplicating the schema to avoid circular imports
+   - Could be refactored to shared types file in future
+
+### Testing Approach
+
+1. **Unit Tests**:
+   - Added tests for GraphQL config generation with api-type flag
+   - Test auto api-type passing to AI generator
+   - Verify GraphQL template generation
+   - All existing tests updated to handle new options
+
+2. **Integration Possibilities**:
+   - Could test with real GitHub/Shopify GraphQL APIs
+   - Verify AI correctly identifies GraphQL availability
+   - Test error cases when GraphQL not available
+
+### Security Considerations
+
+- GraphQL operations validated for basic syntax
+- Checks for query/mutation keyword at start
+- Validates operation has opening brace
+- Same HTTPS and token format requirements as REST
+- No hardcoded values allowed in GraphQL operations
+
+### User Experience
+
+1. **Seamless Detection**:
+   - Users don't need to know if API supports GraphQL
+   - AI handles the complexity of choosing the best option
+   - Clear feedback about what was generated
+
+2. **Control When Needed**:
+   - Power users can force specific API type
+   - Helpful when debugging or comparing approaches
+   - Clear error messages if forced type not available
+
+3. **Documentation**:
+   - Updated README with GraphQL examples
+   - Tips section explains --api-type usage
+   - Examples show forcing GraphQL with documentation URLs
+
+### Future Enhancements
+
+- GraphQL introspection support for schema discovery
+- Better GraphQL operation extraction from examples
+- Support for GraphQL fragments and complex queries
+- GraphQL subscription templates (when WebSocket support added)
+- Schema validation for generated operations
+
+## Multi-Provider LLM Support (Phase 6)
+
+### Design Decisions
+
+1. **OpenAI SDK as Universal Interface**:
+   - OpenAI SDK supports multiple providers through base URL configuration
+   - Avoids need for separate SDKs for each provider
+   - Anthropic and Google messages format is compatible with OpenAI's
+   - Simplifies code maintenance and testing
+
+2. **Provider Configuration**:
+   - Created centralized AI_PROVIDERS configuration object
+   - Each provider has: name, baseURL, apiKeyEnvVar, defaultModel, modelPrefix
+   - Model prefix needed for some providers when using OpenAI SDK
+   - Easy to add new providers in the future
+
+3. **Environment Variable Strategy**:
+   - `AI_PROVIDER` selects the provider (default: openai)
+   - Provider-specific API keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`
+   - Backward compatibility: If `ANTHROPIC_API_KEY` exists but no `AI_PROVIDER`, defaults to Anthropic
+   - Generic AI configuration: `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TEMPERATURE`
+
+4. **Error Handling**:
+   - Provider-specific error messages and help text
+   - Different status codes have different meanings per provider
+   - Graceful fallback with helpful guidance for users
+
+### Implementation Patterns
+
+```typescript
+// Provider selection logic
+const providerName = process.env['AI_PROVIDER'] ??
+  (process.env['ANTHROPIC_API_KEY'] ? 'anthropic' : 'openai')
+
+// OpenAI SDK with different providers
+const client = new OpenAI({
+  apiKey: process.env[provider.apiKeyEnvVar],
+  baseURL: provider.baseURL
+})
+
+// Model name handling (some providers need prefixes)
+const modelName = provider.modelPrefix ?
+  `${provider.modelPrefix}${this.model}` : this.model
+```
+
+### Testing Approach
+
+1. **Mock Strategy**:
+   - Mock OpenAI SDK consistently across all providers
+   - Test provider selection logic
+   - Verify correct base URLs and model names
+   - Test backward compatibility scenarios
+
+2. **Integration Testing**:
+   - Skip tests when API keys not available
+   - Support testing with real providers via environment variables
+   - Each provider can be tested independently
+
+### Key Learnings
+
+1. **SDK Compatibility**: OpenAI's SDK design allows it to work with multiple providers, reducing complexity
+2. **Backward Compatibility**: Important to maintain existing behavior when adding new features
+3. **Provider Abstraction**: Centralizing provider configuration makes it easy to add new ones
+4. **Error Messages**: Provider-specific error handling improves user experience
+
+## AI Proxy Support (Phase 7)
+
+### Design Decisions
+
+1. **Simple Proxy Configuration**:
+   - Two environment variables: `AI_PROXY_URL` and `AI_PROXY_TOKEN`
+   - Proxy URL overrides provider's base URL when set
+   - Proxy token is used as API key, original API key becomes optional
+   - Works with all providers transparently
+
+2. **Implementation Approach**:
+   - Check for proxy configuration before provider setup
+   - Use proxy URL as baseURL in OpenAI client
+   - Use proxy token as apiKey if provided, fallback to provider API key
+   - No changes needed to provider abstraction
+
+3. **Security Considerations**:
+   - Proxy token takes precedence over API key for security
+   - If both proxy token and API key exist, use proxy token
+   - Clear debug output shows when proxy is in use
+   - Help messages updated for proxy-specific errors
+
+### Implementation Pattern
+
+```typescript
+if (proxyUrl) {
+  this.usingProxy = true
+  const effectiveApiKey = proxyToken ?? apiKey ?? 'dummy-key'
+
+  this.client = new OpenAI({
+    apiKey: effectiveApiKey,
+    baseURL: proxyUrl  // Override provider URL
+  })
+}
+```
+
+### Error Handling
+
+- 401 with proxy: "Check your AI_PROXY_TOKEN or proxy authentication"
+- 404 with proxy: "Proxy URL may be incorrect or endpoint not found"
+- 502 with proxy: "Proxy server error - check if proxy is running"
+- Connection errors: Specific help for proxy vs direct API issues
+
+### Testing Strategy
+
+1. **Unit Tests**:
+   - Test proxy configuration detection
+   - Verify proxy URL overrides provider URL
+   - Test token precedence logic
+   - Mock proxy-specific error scenarios
+
+2. **Debug Output**:
+   - Shows "Using Proxy: true/false"
+   - Displays effective base URL (proxy or provider)
+   - Helps users verify configuration
+
+### Key Learnings
+
+1. **Minimal Changes**: Proxy support added with minimal code changes
+2. **Transparent Integration**: Works with all providers without provider-specific code
+3. **Backward Compatible**: Existing configurations continue to work unchanged
+4. **Enterprise Ready**: Proxy support enables use in corporate environments
+
+### Use Cases
+
+1. **Corporate Proxies**: Companies can route all AI traffic through internal proxies
+2. **Cost Management**: Centralized billing through proxy service
+3. **Compliance**: Audit and control AI usage in regulated environments
+4. **Rate Limiting**: Proxy can implement organization-wide rate limits
+5. **Caching**: Proxy can cache common requests to reduce costs
+
+## GraphQL as Default API Type
+- The `apiType` field in ServiceConfig defaults to 'graphql'
+- The init command defaults to creating GraphQL templates (`--template graphql`)
+- AI config generation prefers GraphQL when available (with `--api-type auto` as default)
+- GraphQL is listed first in all documentation and examples
+- This reflects modern API development trends where GraphQL is increasingly preferred
+- REST remains fully supported as an option when explicitly specified with `apiType: rest`
+- Validation logic treats missing `apiType` as GraphQL, requiring `graphqlOperations` field

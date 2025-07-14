@@ -56,9 +56,7 @@ describe('GraphQL Validator', () => {
 
       const result = validateGraphQLOperation(operation)
       expect(result.valid).toBe(false)
-      expect(result.errors).toContain(
-        'name: Operation name is required',
-      )
+      expect(result.errors).toContain('name: Required')
     })
 
     it('should reject operation without query', () => {
@@ -68,9 +66,7 @@ describe('GraphQL Validator', () => {
 
       const result = validateGraphQLOperation(operation)
       expect(result.valid).toBe(false)
-      expect(result.errors).toContain(
-        'query: GraphQL query is required',
-      )
+      expect(result.errors).toContain('query: Required')
     })
 
     it('should reject invalid cacheTTL', () => {

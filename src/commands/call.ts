@@ -119,7 +119,8 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
       const config = await loadServiceConfig(service, debugFormatter)
 
       // Check if this is a GraphQL service
-      const isGraphQL = config.apiType === 'graphql'
+      const isGraphQL =
+        !config.apiType || config.apiType === 'graphql'
 
       // Find endpoint/operation or alias
       let endpoint: EndpointConfig | undefined
@@ -212,7 +213,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
             operation,
             mergedParams,
             {
-              debug: args.debug,
+              debug: args.debug ?? false,
               cache,
             },
           )
@@ -220,7 +221,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
           // Format as API response
           const response: ApiResponse = {
             success: true,
-            data: data as unknown,
+            data,
             metadata: {
               timestamp: Date.now(),
               statusCode: 200,
@@ -697,7 +698,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
           operation,
           mergedParams,
           {
-            debug: args.debug,
+            debug: args.debug ?? false,
             cache,
           },
         )
@@ -705,7 +706,7 @@ export class CallCommand extends BaseCommand<CallCommandArgs> {
         // Format as API response
         const response: ApiResponse = {
           success: true,
-          data: data as any,
+          data,
           metadata: {
             timestamp: Date.now(),
             statusCode: 200,

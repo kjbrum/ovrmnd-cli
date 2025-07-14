@@ -111,7 +111,7 @@ src/
 ```yaml
 serviceName: github-graphql
 baseUrl: https://api.github.com
-apiType: graphql                    # New field (defaults to 'rest')
+apiType: graphql                    # New field (defaults to 'graphql')
 graphqlEndpoint: /graphql           # GraphQL endpoint path
 authentication:
   type: bearer

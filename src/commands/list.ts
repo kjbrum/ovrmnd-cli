@@ -132,7 +132,7 @@ export class ListCommand extends BaseCommand<ListArgs> {
         name,
         baseUrl: config.baseUrl,
         authentication: config.authentication?.type ?? 'none',
-        endpoints: config.endpoints.length,
+        endpoints: config.endpoints?.length ?? 0,
         aliases: config.aliases?.length ?? 0,
       }),
     )
@@ -177,7 +177,7 @@ export class ListCommand extends BaseCommand<ListArgs> {
       })
     }
 
-    const isGraphQL = config.apiType === 'graphql'
+    const isGraphQL = !config.apiType || config.apiType === 'graphql'
 
     if (isGraphQL) {
       // List GraphQL operations

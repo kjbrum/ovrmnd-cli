@@ -120,7 +120,7 @@ export class AIConfigGenerator {
       return this.systemPromptCache
     }
 
-    // Load the new XML-based prompt
+    // Load the XML-based prompt
     const promptPath = path.join(
       __dirname,
       '..',
@@ -147,15 +147,27 @@ export class AIConfigGenerator {
   async generateConfig(
     serviceName: string,
     prompt: string,
-    options?: { debug?: boolean },
+    options?: {
+      debug?: boolean
+      apiType?: 'auto' | 'rest' | 'graphql'
+    },
   ): Promise<ServiceConfig> {
     // Load the system prompt template
     const promptTemplate = await this.loadSystemPrompt()
 
     // Replace placeholders with actual values
-    const systemPrompt = promptTemplate
+    let systemPrompt = promptTemplate
       .replace('{serviceName}', serviceName)
       .replace('{prompt}', prompt)
+
+    // Add API type preference if specified
+    if (options?.apiType && options.apiType !== 'auto') {
+      const apiTypeInstruction = `\n\n<api_type_preference>The user has specifically requested a ${options.apiType.toUpperCase()} API configuration. Only generate a ${options.apiType} configuration, even if the service supports other API types.</api_type_preference>`
+      systemPrompt += apiTypeInstruction
+    } else if (options?.apiType === 'auto' || !options?.apiType) {
+      const apiTypeInstruction = `\n\n<api_type_preference>Auto-detect the best API type for this service. If the service supports GraphQL, prefer it over REST for better performance and flexibility. If GraphQL is not available or well-documented, use REST.</api_type_preference>`
+      systemPrompt += apiTypeInstruction
+    }
 
     // Log debug info if requested
     if (options?.debug) {
@@ -356,24 +368,51 @@ export class AIConfigGenerator {
       }
     }
 
-    // Check for hardcoded secrets in headers
-    for (const endpoint of config.endpoints) {
-      if (endpoint.headers) {
-        for (const [key, value] of Object.entries(endpoint.headers)) {
-          if (
-            key.toLowerCase().includes('auth') ||
-            key.toLowerCase().includes('key') ||
-            key.toLowerCase().includes('token')
-          ) {
-            if (!value.includes('${')) {
-              throw new OvrmndError({
-                code: ErrorCode.CONFIG_INVALID,
-                message: `Potential hardcoded secret in endpoint "${endpoint.name}" headers`,
-                details: `Header "${key}" appears to contain a hardcoded value`,
-                help: 'Use environment variables for sensitive headers',
-              })
+    // Check for hardcoded secrets in REST endpoint headers
+    if (config.endpoints) {
+      for (const endpoint of config.endpoints) {
+        if (endpoint.headers) {
+          for (const [key, value] of Object.entries(
+            endpoint.headers,
+          )) {
+            if (
+              key.toLowerCase().includes('auth') ||
+              key.toLowerCase().includes('key') ||
+              key.toLowerCase().includes('token')
+            ) {
+              if (!value.includes('${')) {
+                throw new OvrmndError({
+                  code: ErrorCode.CONFIG_INVALID,
+                  message: `Potential hardcoded secret in endpoint "${endpoint.name}" headers`,
+                  details: `Header "${key}" appears to contain a hardcoded value`,
+                  help: 'Use environment variables for sensitive headers',
+                })
+              }
             }
           }
+        }
+      }
+    }
+
+    // For GraphQL, validate operation syntax (basic check)
+    if (config.apiType === 'graphql' && config.graphqlOperations) {
+      for (const operation of config.graphqlOperations) {
+        if (!operation.query.trim()) {
+          throw new OvrmndError({
+            code: ErrorCode.CONFIG_INVALID,
+            message: `Empty GraphQL query in operation "${operation.name}"`,
+            help: 'Provide a valid GraphQL query or mutation',
+          })
+        }
+        // Basic syntax check - should contain query or mutation keyword
+        if (!operation.query.match(/^\s*(query|mutation)\s+/i)) {
+          throw new OvrmndError({
+            code: ErrorCode.CONFIG_INVALID,
+            message: `Invalid GraphQL syntax in operation "${operation.name}"`,
+            details:
+              'Query must start with "query" or "mutation" keyword',
+            help: 'Use proper GraphQL syntax: query OperationName { ... }',
+          })
         }
       }
     }

@@ -351,7 +351,7 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
 
 **Completed in Phase 8**:
 - GraphQL Support: ✅ Complete
-  - Added apiType field to ServiceConfig (defaults to 'rest')
+  - Added apiType field to ServiceConfig (defaults to 'graphql')
   - Created comprehensive GraphQL type definitions
   - Implemented native GraphQL client with:
     - Query and mutation execution
@@ -378,6 +378,14 @@ This document tracks the implementation progress of the Ovrmnd CLI project. It p
     - README.md with GraphQL section and examples
     - CLAUDE.md with GraphQL implementation details
     - Created example configurations (GitHub, Shopify)
+  - **Added GraphQL support to AI-powered init command**:
+    - Auto-detection of GraphQL availability (default behavior)
+    - `--api-type` flag to control API type selection (auto/rest/graphql)
+    - Updated AI prompts to research both REST and GraphQL documentation
+    - GraphQL-aware prompt file in `docs/prompts/ai-config-base.xml`
+    - GraphQL template generation with `--template graphql`
+    - AI prefers GraphQL when available for better performance
+    - Updated init command tests for GraphQL functionality
   - Overall project progress: ~99% complete
 
 **Next Phase**: 9 - OAuth2 Built-in Authentication
@@ -527,6 +535,20 @@ None currently identified.
 ---
 
 ## Change Log
+
+### 2025-07-14 - GraphQL Support Added to AI-Powered Init Command
+- Enhanced AI-powered init command with GraphQL support:
+  - Added `--api-type` flag with options: auto (default), rest, graphql
+  - AI now auto-detects GraphQL availability and prefers it when available
+  - Updated AI prompt file to support both REST and GraphQL (`docs/prompts/ai-config-base.xml`)
+  - Updated AI config generator to support GraphQL configuration generation
+  - Added `--template graphql` option for manual GraphQL templates
+  - GraphQL template includes example queries and mutations
+  - Updated init command tests to cover GraphQL functionality
+  - Enhanced documentation in README.md and CLAUDE.md
+  - AI researches both REST and GraphQL documentation
+  - Smart detection logic looks for /graphql endpoints and GraphQL docs
+  - GraphQL operations generated with proper syntax and typing
 
 ### 2025-07-11 (Night) - Phase 8 Complete
 - Phase 8: GraphQL Support completed (100%):

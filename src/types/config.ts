@@ -53,7 +53,7 @@ export interface AliasConfig {
 export interface ServiceConfig {
   serviceName: string
   baseUrl: string
-  apiType?: ApiType | undefined // Defaults to 'rest'
+  apiType?: ApiType | undefined // Defaults to 'graphql'
   authentication?: AuthConfig | undefined
   endpoints?: EndpointConfig[] | undefined // Optional for GraphQL services
   graphqlEndpoint?: string | undefined // GraphQL endpoint path (e.g., /graphql)

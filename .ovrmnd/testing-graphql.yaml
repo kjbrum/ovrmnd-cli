@@ -1,0 +1,150 @@
+# GraphQL Testing configuration for Ovrmnd CLI
+# This file demonstrates GraphQL configuration features
+# Use: node dist/cli.js call testing-graphql.<operation>
+#
+# Example calls:
+# node dist/cli.js call testing-graphql.getUser login=octocat
+# node dist/cli.js call testing-graphql.getRepository owner=facebook name=react
+# node dist/cli.js call testing-graphql.myProfile
+# node dist/cli.js call testing-graphql.createIssue repositoryId=MDEwOlJlcG9zaXRvcnkxMjk2MjY5 title="Test Issue" body="Issue description"
+#
+# Batch operations:
+# node dist/cli.js call testing-graphql.getUser --batch-json='[{"login":"octocat"},{"login":"torvalds"}]'
+
+serviceName: testing-graphql
+baseUrl: https://api.github.com
+apiType: graphql
+graphqlEndpoint: /graphql
+
+# GitHub GraphQL API requires authentication
+authentication:
+  type: bearer
+  token: ${GITHUB_TOKEN}
+
+graphqlOperations:
+  # Query to get user information
+  - name: getUser
+    operationType: query
+    query: |
+      query GetUser($login: String!) {
+        user(login: $login) {
+          id
+          login
+          name
+          bio
+          avatarUrl
+          repositories(first: 5) {
+            nodes {
+              name
+              description
+              stargazerCount
+            }
+          }
+        }
+      }
+    cacheTTL: 300
+    transform:
+      fields: ["user"]
+
+  # Query to get repository information
+  - name: getRepository
+    operationType: query
+    query: |
+      query GetRepository($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          id
+          name
+          description
+          stargazerCount
+          forkCount
+          primaryLanguage {
+            name
+          }
+          issues(first: 5, states: OPEN) {
+            nodes {
+              title
+              state
+              createdAt
+            }
+          }
+        }
+      }
+    cacheTTL: 600
+    
+  # Query to get current user
+  - name: viewer
+    operationType: query
+    query: |
+      query GetViewer {
+        viewer {
+          login
+          name
+          bio
+          repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            nodes {
+              name
+              description
+              updatedAt
+            }
+          }
+        }
+      }
+    cacheTTL: 300
+    
+  # Mutation to create an issue
+  - name: createIssue
+    operationType: mutation
+    query: |
+      mutation CreateIssue($repositoryId: ID!, $title: String!, $body: String) {
+        createIssue(input: {
+          repositoryId: $repositoryId,
+          title: $title,
+          body: $body
+        }) {
+          issue {
+            id
+            number
+            title
+            url
+          }
+        }
+      }
+    
+  # Mutation to add a star to a repository
+  - name: addStar
+    operationType: mutation
+    query: |
+      mutation AddStar($repositoryId: ID!) {
+        addStar(input: {starrableId: $repositoryId}) {
+          starrable {
+            id
+            stargazerCount
+          }
+        }
+      }
+
+# Aliases for common operations
+aliases:
+  # Get the current user's profile
+  - name: myProfile
+    endpoint: viewer
+    
+  # Get React repository
+  - name: react-repo
+    endpoint: getRepository
+    args:
+      owner: facebook
+      name: react
+      
+  # Get Vue repository
+  - name: vue-repo
+    endpoint: getRepository
+    args:
+      owner: vuejs
+      name: vue
+      
+  # Get Linus Torvalds' profile
+  - name: linus
+    endpoint: getUser
+    args:
+      login: torvalds

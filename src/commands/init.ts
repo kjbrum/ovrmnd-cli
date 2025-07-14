@@ -11,7 +11,7 @@ import { AIConfigGenerator } from '../services/ai-config-generator'
 
 interface InitArgs {
   serviceName?: string
-  template: 'rest'
+  template: 'rest' | 'graphql'
   output?: string
   force: boolean
   global: boolean
@@ -19,6 +19,7 @@ interface InitArgs {
   pretty: boolean
   debug: boolean
   prompt?: string
+  apiType?: 'auto' | 'rest' | 'graphql'
 }
 
 interface ServiceInfo {
@@ -44,8 +45,8 @@ export class InitCommand extends BaseCommand<InitArgs> {
         alias: 't',
         describe: 'Template to use',
         type: 'string',
-        choices: ['rest'] as const,
-        default: 'rest',
+        choices: ['graphql', 'rest'] as const,
+        default: 'graphql',
       })
       .option('output', {
         alias: 'o',
@@ -86,29 +87,37 @@ export class InitCommand extends BaseCommand<InitArgs> {
           'Natural language prompt for AI-powered config generation. Include API documentation URLs for best results',
         type: 'string',
       })
+      .option('api-type', {
+        describe:
+          'API type preference for AI generation (auto detects best option)',
+        type: 'string',
+        choices: ['auto', 'rest', 'graphql'] as const,
+        default: 'auto',
+      })
       .example(
         '$0 init github --interactive',
-        'Interactive GitHub service setup',
+        'Interactive GitHub GraphQL setup',
+      )
+      .example('$0 init myapi', 'Create GraphQL API template')
+      .example(
+        '$0 init shopify --prompt "Shopify GraphQL API for products"',
+        'AI-powered config (auto-detects GraphQL)',
+      )
+      .example(
+        '$0 init github --prompt "GitHub API for repos and issues"',
+        'AI auto-selects GraphQL when available',
       )
       .example(
         '$0 init myapi --template=rest',
-        'Create REST API template',
+        'Create REST API template (optional)',
       )
       .example(
-        '$0 init slack --global --interactive',
-        'Create in global directory with prompts',
+        '$0 init github --prompt "GitHub REST API" --api-type rest',
+        'Force REST API generation',
       )
       .example(
-        '$0 init shopify --prompt "Find Shopify REST API docs for products and orders"',
-        'AI-powered Shopify config generation',
-      )
-      .example(
-        '$0 init github --prompt "Create config for GitHub API repo management"',
-        'AI-powered GitHub config generation',
-      )
-      .example(
-        '$0 init stripe --prompt "Create config using https://stripe.com/docs/api"',
-        'AI generation with specific docs URL',
+        '$0 init stripe --prompt "Use https://stripe.com/docs/api" --global',
+        'AI generation in global directory',
       ) as unknown as Argv<InitArgs>
   }
 
@@ -142,10 +151,19 @@ export class InitCommand extends BaseCommand<InitArgs> {
 
         // Generate config using AI
         const generator = new AIConfigGenerator()
+        const options: {
+          debug?: boolean
+          apiType?: 'auto' | 'rest' | 'graphql'
+        } = {
+          debug: args.debug,
+        }
+        if (args.apiType) {
+          options.apiType = args.apiType
+        }
         template = await generator.generateConfig(
           args.serviceName,
           args.prompt,
-          { debug: args.debug },
+          options,
         )
 
         const authType = template.authentication?.type ?? 'none'
@@ -412,7 +430,6 @@ export class InitCommand extends BaseCommand<InitArgs> {
     const template: ServiceConfig = {
       serviceName: info.serviceName,
       baseUrl: info.baseUrl,
-      endpoints: [],
     }
 
     // Add authentication if needed
@@ -433,8 +450,86 @@ export class InitCommand extends BaseCommand<InitArgs> {
       }
     }
 
-    // Add template-specific endpoints
-    if (templateType === 'rest') {
+    // Add template-specific configuration
+    if (templateType === 'graphql') {
+      template.apiType = 'graphql'
+      template.graphqlEndpoint = '/graphql'
+      template.graphqlOperations = [
+        {
+          name: 'listItems',
+          operationType: 'query' as const,
+          query: `query ListItems($limit: Int, $offset: Int) {
+            items(limit: $limit, offset: $offset) {
+              id
+              name
+              description
+              createdAt
+            }
+          }`,
+          cacheTTL: 300,
+          transform: {
+            fields: ['items'],
+          },
+        },
+        {
+          name: 'getItem',
+          operationType: 'query' as const,
+          query: `query GetItem($id: ID!) {
+            item(id: $id) {
+              id
+              name
+              description
+              createdAt
+              updatedAt
+            }
+          }`,
+          cacheTTL: 300,
+        },
+        {
+          name: 'createItem',
+          operationType: 'mutation' as const,
+          query: `mutation CreateItem($input: CreateItemInput!) {
+            createItem(input: $input) {
+              id
+              name
+              description
+            }
+          }`,
+        },
+        {
+          name: 'updateItem',
+          operationType: 'mutation' as const,
+          query: `mutation UpdateItem($id: ID!, $input: UpdateItemInput!) {
+            updateItem(id: $id, input: $input) {
+              id
+              name
+              description
+              updatedAt
+            }
+          }`,
+        },
+        {
+          name: 'deleteItem',
+          operationType: 'mutation' as const,
+          query: `mutation DeleteItem($id: ID!) {
+            deleteItem(id: $id) {
+              success
+              message
+            }
+          }`,
+        },
+      ]
+
+      // Add example aliases
+      template.aliases = [
+        {
+          name: 'first-item',
+          endpoint: 'getItem',
+          args: { id: '1' },
+        },
+      ]
+    } else {
+      // REST template
       template.endpoints = [
         {
           name: 'list',

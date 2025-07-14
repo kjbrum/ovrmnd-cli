@@ -1,6 +1,13 @@
 import { z } from 'zod'
-import type { GraphQLOperationConfig } from '../types/graphql.js'
-import { TransformConfigSchema } from './validator.js'
+import type { GraphQLOperationConfig } from '../types/graphql'
+
+/**
+ * Transform config schema (duplicated to avoid circular dependency)
+ */
+const TransformConfigSchema = z.object({
+  fields: z.array(z.string()).optional(),
+  rename: z.record(z.string()).optional(),
+})
 
 /**
  * GraphQL operation type schema
@@ -10,19 +17,39 @@ const graphQLOperationTypeSchema = z.enum(['query', 'mutation'])
 /**
  * GraphQL operation configuration schema
  */
-export const graphQLOperationConfigSchema = z.object({
-  name: z.string().min(1, 'Operation name is required'),
-  operationType: graphQLOperationTypeSchema.optional(),
-  query: z.string().min(1, 'GraphQL query is required'),
-  variables: z.record(z.unknown()).optional(),
-  cacheTTL: z
-    .number()
-    .positive('Cache TTL must be positive')
-    .optional(),
-  transform: z
-    .union([TransformConfigSchema, z.array(TransformConfigSchema)])
-    .optional(),
-})
+export const graphQLOperationConfigSchema = z
+  .object({
+    name: z.string().min(1, 'Operation name is required'),
+    operationType: graphQLOperationTypeSchema.optional(),
+    query: z.string().min(1, 'GraphQL query is required'),
+    variables: z.record(z.unknown()).optional(),
+    cacheTTL: z
+      .number()
+      .positive('Cache TTL must be positive')
+      .optional(),
+    transform: z
+      .union([TransformConfigSchema, z.array(TransformConfigSchema)])
+      .optional(),
+  })
+  .transform(obj => {
+    // Remove undefined optional properties to satisfy exactOptionalPropertyTypes
+    const result: {
+      name: string
+      query: string
+      operationType?: 'query' | 'mutation'
+      variables?: Record<string, unknown>
+      cacheTTL?: number
+      transform?:
+        | z.infer<typeof TransformConfigSchema>
+        | z.infer<typeof TransformConfigSchema>[]
+    } = { name: obj.name, query: obj.query }
+    if (obj.operationType !== undefined)
+      result.operationType = obj.operationType
+    if (obj.variables !== undefined) result.variables = obj.variables
+    if (obj.cacheTTL !== undefined) result.cacheTTL = obj.cacheTTL
+    if (obj.transform !== undefined) result.transform = obj.transform
+    return result
+  })
 
 /**
  * Validate a GraphQL operation configuration

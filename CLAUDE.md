@@ -90,7 +90,7 @@ ovrmnd [command]        # Run installed CLI
 
 **Already Implemented (Phase 8)**: ✅ COMPLETE
 - GraphQL support as additional API type
-- New `apiType` field in ServiceConfig (defaults to 'rest')
+- New `apiType` field in ServiceConfig (defaults to 'graphql')
 - GraphQL operations defined using `graphqlOperations` field
 - Native GraphQL client with query and mutation support
 - Variable handling with direct CLI argument mapping
@@ -99,6 +99,12 @@ ovrmnd [command]        # Run installed CLI
 - Batch operations support for GraphQL
 - List command shows GraphQL operations
 - Validate command checks GraphQL syntax and rules
+- **GraphQL support in AI-powered init command**:
+  - Auto-detection of GraphQL availability (default behavior)
+  - `--api-type` flag to control API type selection (auto/rest/graphql)
+  - GraphQL-aware AI prompts that research both REST and GraphQL
+  - GraphQL template generation with `--template graphql`
+  - AI prefers GraphQL when available for better performance
 - Comprehensive unit and integration tests
 
 **To Be Implemented**:
@@ -250,14 +256,26 @@ The init command supports AI-powered configuration generation using multiple LLM
 - Configurable via `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TEMPERATURE` env vars
 - Validates generated configs using existing schema validation
 - Enhanced security validation for HTTPS URLs and proper token formats
+- **GraphQL Support**:
+  - GraphQL is the preferred API type (default template is GraphQL)
+  - Auto-detects GraphQL availability and prefers it when available
+  - `--api-type` flag controls selection: auto (default, prefers GraphQL), rest, graphql
+  - Researches both REST and GraphQL documentation
+  - Generates appropriate operations based on API type
 - **XML-structured prompts**: Following best practices with modular prompt structure
-- **Prompt files**: Main prompt in `docs/prompts/ai-config-base.xml`, examples in `docs/prompts/examples/`
+- **Prompt files**: Main prompt in `docs/prompts/ai-config-base.xml` (supports both REST and GraphQL), examples in `docs/prompts/examples/`
 
 **Usage**:
 ```bash
-# Default (OpenAI)
+# Default (OpenAI) - Auto-detects best API type
 export OPENAI_API_KEY="sk-..."
-ovrmnd init <service> --prompt "description of what you need"
+ovrmnd init github --prompt "GitHub API for repository management"
+
+# Force GraphQL
+ovrmnd init shopify --prompt "Shopify Admin API" --api-type graphql
+
+# Force REST (even if GraphQL is available)
+ovrmnd init github --prompt "GitHub API" --api-type rest
 
 # Anthropic
 export AI_PROVIDER=anthropic

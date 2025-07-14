@@ -1,15 +1,15 @@
-import type { ResolvedServiceConfig } from '../types/config.js'
+import type { ResolvedServiceConfig } from '../types/config'
 import type {
   GraphQLOperationConfig,
   GraphQLRequest,
   GraphQLResponse,
-} from '../types/graphql.js'
-import { GraphQLHttpError } from '../types/graphql.js'
-import { OvrmndError, ErrorCode } from '../utils/error.js'
-import { DebugFormatter } from '../utils/debug-formatter.js'
-import type { CacheStorage } from '../services/cache-storage.js'
-import { ResponseTransformer } from '../services/response-transformer.js'
-import { applyAuth } from './auth.js'
+} from '../types/graphql'
+import { GraphQLHttpError } from '../types/graphql'
+import { OvrmndError, ErrorCode } from '../utils/error'
+import { DebugFormatter } from '../utils/debug'
+import type { CacheStorage } from '../cache/storage'
+import { ResponseTransformer } from '../transform/transformer'
+import { applyAuth } from './auth'
 
 /**
  * Execute a GraphQL operation
@@ -45,12 +45,11 @@ export async function executeGraphQLOperation<T = unknown>(
   )
 
   if (debugFormatter) {
-    debugFormatter.section('GraphQL Operation')
-    debugFormatter.log('Operation', operation.name)
-    debugFormatter.log('Type', operation.operationType ?? 'query')
-    debugFormatter.log(
-      'Variables',
-      JSON.stringify(variables, null, 2),
+    debugFormatter.debug('GraphQL', `Operation: ${operation.name}`)
+    debugFormatter.debug('GraphQL', `Type: ${operation.operationType ?? 'query'}`)
+    debugFormatter.debug(
+      'GraphQL',
+      `Variables: ${JSON.stringify(variables, null, 2)}`,
     )
   }
 
@@ -60,25 +59,6 @@ export async function executeGraphQLOperation<T = unknown>(
     service.baseUrl,
   ).toString()
 
-  // Check cache for queries
-  const isQuery =
-    !operation.operationType || operation.operationType === 'query'
-  if (isQuery && operation.cacheTTL && cache) {
-    const cacheKey = cache.generateKey(url, request)
-    const cachedResponse = cache.get(cacheKey) as T | null
-
-    if (cachedResponse) {
-      if (debugFormatter) {
-        debugFormatter.log('Cache', 'HIT')
-      }
-      return cachedResponse
-    }
-
-    if (debugFormatter) {
-      debugFormatter.log('Cache', 'MISS')
-    }
-  }
-
   // Build headers
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -87,15 +67,36 @@ export async function executeGraphQLOperation<T = unknown>(
   }
 
   // Apply authentication
-  if (service.authentication) {
-    applyAuth(headers, url, service.authentication)
+  applyAuth(service, headers)
+
+  // Check cache for queries
+  const isQuery =
+    !operation.operationType || operation.operationType === 'query'
+  if (isQuery && operation.cacheTTL && cache) {
+    const cacheKey = cache.generateKey(
+      service.serviceName,
+      operation.name,
+      url,
+      headers
+    )
+    const cachedResponse = cache.get(cacheKey) as T | null
+
+    if (cachedResponse) {
+      if (debugFormatter) {
+        debugFormatter.debug('Cache', 'HIT')
+      }
+      return cachedResponse
+    }
+
+    if (debugFormatter) {
+      debugFormatter.debug('Cache', 'MISS')
+    }
   }
 
   if (debugFormatter) {
-    debugFormatter.section('GraphQL Request')
-    debugFormatter.log('URL', url)
-    debugFormatter.log('Headers', sanitizeHeaders(headers))
-    debugFormatter.log('Body', JSON.stringify(request, null, 2))
+    debugFormatter.debug('GraphQL', `Request URL: ${url}`)
+    debugFormatter.debug('GraphQL', `Headers: ${JSON.stringify(sanitizeHeaders(headers))}`)
+    debugFormatter.debug('GraphQL', `Body: ${JSON.stringify(request, null, 2)}`)
   }
 
   try {
@@ -124,11 +125,10 @@ export async function executeGraphQLOperation<T = unknown>(
     }
 
     if (debugFormatter) {
-      debugFormatter.section('GraphQL Response')
-      debugFormatter.log('Status', response.status.toString())
-      debugFormatter.log(
-        'Body',
-        JSON.stringify(responseData, null, 2),
+      debugFormatter.debug('GraphQL', `Response Status: ${response.status}`)
+      debugFormatter.debug(
+        'GraphQL',
+        `Response Body: ${JSON.stringify(responseData, null, 2)}`,
       )
     }
 
@@ -136,7 +136,7 @@ export async function executeGraphQLOperation<T = unknown>(
     if (responseData.errors && responseData.errors.length > 0) {
       const mainError = responseData.errors[0]
       throw new GraphQLHttpError(
-        mainError.message,
+        mainError?.message ?? 'GraphQL error occurred',
         response.status,
         responseData,
         request,
@@ -158,13 +158,13 @@ export async function executeGraphQLOperation<T = unknown>(
 
     // Apply transformations if configured
     if (operation.transform && result !== undefined) {
-      const transformer = new ResponseTransformer()
       const transforms = Array.isArray(operation.transform)
         ? operation.transform
         : [operation.transform]
 
       for (const transform of transforms) {
-        result = transformer.transform(result, transform) as T
+        const transformer = new ResponseTransformer(transform)
+        result = transformer.transform(result) as T
       }
     }
 
@@ -175,7 +175,12 @@ export async function executeGraphQLOperation<T = unknown>(
       cache &&
       result !== undefined
     ) {
-      const cacheKey = cache.generateKey(url, request)
+      const cacheKey = cache.generateKey(
+      service.serviceName,
+      operation.name,
+      url,
+      headers
+    )
       cache.set(cacheKey, result as unknown, operation.cacheTTL, {
         service: service.serviceName,
         endpoint: operation.name,
@@ -237,14 +242,16 @@ export function buildGraphQLRequest(
     ? operationNameMatch[1]
     : undefined
 
-  return {
+  const request: GraphQLRequest = {
     query: operation.query,
-    variables:
-      Object.keys(mergedVariables).length > 0
-        ? mergedVariables
-        : undefined,
-    operationName,
+    variables: mergedVariables,
   }
+  
+  if (operationName) {
+    request.operationName = operationName
+  }
+  
+  return request
 }
 
 /**
@@ -266,7 +273,9 @@ export function parseGraphQLErrors(
 
     if (error.locations && error.locations.length > 0) {
       const loc = error.locations[0]
-      message += ` (line ${loc.line}, column ${loc.column})`
+      if (loc) {
+        message += ` (line ${loc.line}, column ${loc.column})`
+      }
     }
 
     return message
@@ -282,8 +291,8 @@ function sanitizeHeaders(
   const sanitized = { ...headers }
 
   // Redact authorization header
-  if (sanitized.Authorization) {
-    sanitized.Authorization = `${sanitized.Authorization.substring(0, 10)}...`
+  if (sanitized['Authorization']) {
+    sanitized['Authorization'] = `${sanitized['Authorization'].substring(0, 10)}...`
   }
 
   // Redact any API key headers
@@ -292,7 +301,10 @@ function sanitizeHeaders(
       key.toLowerCase().includes('key') ||
       key.toLowerCase().includes('token')
     ) {
-      sanitized[key] = `${sanitized[key].substring(0, 10)}...`
+      const value = sanitized[key]
+      if (value) {
+        sanitized[key] = `${value.substring(0, 10)}...`
+      }
     }
   }
 

@@ -107,7 +107,8 @@ export function resolveServiceConfig(
   }
 
   // Resolve environment variables in endpoints
-  resolved.endpoints = config.endpoints.map(endpoint => {
+  if (config.endpoints) {
+    resolved.endpoints = config.endpoints.map(endpoint => {
     const resolvedEndpoint = {
       ...endpoint,
       path: resolveEnvVars(endpoint.path, debugFormatter),
@@ -129,6 +130,7 @@ export function resolveServiceConfig(
 
     return resolvedEndpoint
   })
+  }
 
   // Resolve environment variables in aliases
   if (config.aliases) {

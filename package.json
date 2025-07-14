@@ -1,7 +1,7 @@
 {
   "name": "ovrmnd",
   "version": "0.1.0",
-  "description": "Universal CLI bridge between LLMs and REST APIs",
+  "description": "Universal CLI bridge between LLMs and APIs",
   "main": "dist/cli.js",
   "bin": {
     "ovrmnd": "./dist/cli.js"

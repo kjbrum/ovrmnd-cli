@@ -404,6 +404,7 @@ describe('AIConfigGenerator', () => {
               content: JSON.stringify({
                 serviceName: 'test',
                 baseUrl: 'https://api.test.com',
+                apiType: 'rest',
                 endpoints: [
                   {
                     name: 'list',
@@ -435,6 +436,7 @@ describe('AIConfigGenerator', () => {
               content: JSON.stringify({
                 serviceName: 'shopify',
                 baseUrl: 'https://api.shopify.com',
+                apiType: 'rest',
                 endpoints: [
                   {
                     name: 'listProducts',
@@ -483,6 +485,7 @@ describe('AIConfigGenerator', () => {
       const insecureConfig = {
         serviceName: 'test',
         baseUrl: 'http://api.test.com', // HTTP instead of HTTPS
+        apiType: 'rest',
         endpoints: [
           {
             name: 'list',
@@ -511,6 +514,7 @@ describe('AIConfigGenerator', () => {
       const badConfig = {
         serviceName: 'test',
         baseUrl: 'https://api.test.com',
+        apiType: 'rest',
         authentication: {
           type: 'bearer',
           token: 'sk-12345abcdef', // Hardcoded instead of ${ENV_VAR}
@@ -545,6 +549,7 @@ describe('AIConfigGenerator', () => {
       const badConfig = {
         serviceName: 'test',
         baseUrl: 'https://api.test.com',
+        apiType: 'rest',
         endpoints: [
           {
             name: 'list',
@@ -586,6 +591,7 @@ describe('AIConfigGenerator', () => {
               content: JSON.stringify({
                 serviceName: 'test',
                 baseUrl: 'https://api.test.com',
+                apiType: 'rest',
                 endpoints: [
                   {
                     name: 'list',
@@ -638,6 +644,7 @@ describe('AIConfigGenerator', () => {
               content: JSON.stringify({
                 serviceName: 'test',
                 baseUrl: 'https://api.test.com',
+                apiType: 'rest',
                 endpoints: [
                   {
                     name: 'list',
